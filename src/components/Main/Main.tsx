@@ -6,6 +6,7 @@ import Button from '@mui/material/Button';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import Model from "../Model/Model";
 import "./main.css";
+import { Editor } from "@monaco-editor/react";
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -65,6 +66,13 @@ export default function Main() {
                     multiple={false}
                 />
             </Button>
+
+            <Editor 
+                height="100%" 
+                defaultLanguage="javascript" 
+                defaultValue="// some comment" 
+                theme="vs-dark"
+            />;
         </div>
     )
 }

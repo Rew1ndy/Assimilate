@@ -9,8 +9,8 @@ html, body, * {
 }
 
 :root {
-  --dark-background-color: #333;
-  --dark-button-color: #444;
+  --dark-background-color: #161619;
+  --dark-button-color: #444448;
   --dark-text-color: #f0f8ff;
 }
 
@@ -18,4 +18,5 @@ html, body, * {
   background-color: var(--dark-background-color);
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
 }

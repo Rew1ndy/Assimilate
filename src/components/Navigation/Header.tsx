@@ -8,7 +8,12 @@ import Button from '@mui/material/Button';
 export default function Header() {
     return(
         <header>
-            Navigation
+            <div className="header-main">
+                Navigation
+            </div>
+            <div className="header-link">
+                link / link2
+            </div>
         </header>
     )
 }
