@@ -1,0 +1,14 @@
+.main {
+  height: 100%;
+  width: 100%;
+  display: grid;
+  grid-template-rows: 1fr auto;
+}
+
+.main label {
+  background-color: var(--dark-button-color) !important;
+}
+
+.MainCanvas {
+  height: auto !important;
+}

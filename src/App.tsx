@@ -1,14 +1,19 @@
-import { useState } from 'react'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import './App.css'
 import Main from './components/Main/Main'
+import Header from './components/Navigation/Header'
+import Footer from './components/Navigation/Footer'
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route index path='/' element={<Main />} />
-      </Routes>
+      <div className="wrapper">
+        <Header />
+        <Routes>
+          <Route index path='/' element={<Main />} />
+        </Routes>
+        <Footer />
+      </div>
     </BrowserRouter>
   )
 }

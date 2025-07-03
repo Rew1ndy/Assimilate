@@ -1,7 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber"
+import { styled } from '@mui/material/styles';
 import { OrbitControls } from '@react-three/drei'
+import Button from '@mui/material/Button';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import Model from "../Model/Model";
+import "./main.css";
+
+const VisuallyHiddenInput = styled('input')({
+  clip: 'rect(0 0 0 0)',
+  clipPath: 'inset(50%)',
+  height: 1,
+  overflow: 'hidden',
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  whiteSpace: 'nowrap',
+  width: 1,
+});
 
 export default function Main() {
     const [fileUpload, setFileUpload] = useState<File | null>(null);
@@ -25,15 +41,30 @@ export default function Main() {
     }, [fileUpload]);
 
     return (
-        <div className="wrapper">
-            <Canvas camera={{ position: [2, 2, 2], rotateX: 90 }}>
+        <div className="main">
+            <Canvas camera={{ position: [0, -3, 1], rotateY: -30 }} className="MainCanvas">
                 <ambientLight />
                 <pointLight position={[5, 5, 5]} />
                 {fileURL && <Model url={fileURL} />}
                 <OrbitControls />
             </Canvas>
 
-            <input type="file" accept=".stl,.glb" onChange={handleFileUpload} multiple={false} />
+            {/* <input type="file" accept=".stl,.glb" onChange={handleFileUpload} multiple={false} /> */}
+            <Button
+                    component="label"
+                    role={undefined}
+                    variant="contained"
+                    tabIndex={-1}
+                    startIcon={<CloudUploadIcon />}
+                >
+                Upload files
+                <VisuallyHiddenInput
+                    type="file"
+                    // onChange={(event) => console.log(event.target.files)}
+                    onChange={handleFileUpload} 
+                    multiple={false}
+                />
+            </Button>
         </div>
     )
 }
