@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber"
 import { styled, ThemeProvider } from '@mui/material/styles';
 import { OrbitControls } from '@react-three/drei'
@@ -13,6 +13,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InfoIcon from '@mui/icons-material/Info';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import type * as monaco from 'monaco-editor'
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -30,17 +31,6 @@ import { createTheme } from '@mui/material/styles';
 import { purple } from '@mui/material/colors';
 import { customTheme } from "../../Themes/Theme";
 
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: purple[500],
-    },
-    secondary: {
-      main: '#f44336',
-    },
-  },
-});
-
 export type ObjectProps = {
   rotation: {
     axis: 'x' | 'y' | 'z';
@@ -55,9 +45,8 @@ export type ObjectProps = {
 export default function Main() {
     const [fileUpload, setFileUpload] = useState<File | null>(null);
     const [fileURL, setFileURL] = useState<string>("");
-    const [editorText, setEditorText] = useState<String | undefined>();
-    // const [direction, setDirection] = useState<number>(1);
-    // const [rotationSpeed, setRotationSpeed] = useState<number>(30);
+    const [editorText, setEditorText] = useState<string | undefined>();
+    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
     const [objectProps, setObjectProps] = useState<ObjectProps>({
         rotation: { axis: 'z', speed: 0.005, direction: 1 },
         scale: [1, 1, 1],
@@ -67,27 +56,33 @@ export default function Main() {
     const handleFileUpload = (obj: { target: HTMLInputElement; }) => {
         const file = obj.target.files?.[0] || null;
         setFileUpload(file);
-        // console.log(fileUpload)
     }
 
     const updateDirection = (dir: number) => {
-    setObjectProps(prev => ({
-        ...prev,
-        rotation: {
-        ...prev.rotation,
-        direction: dir,
-        },
-    }))
+        setObjectProps(prev => ({
+            ...prev,
+            rotation: {
+            ...prev.rotation,
+            direction: dir,
+            },
+        }))
     }
 
     const updateSpeed = (speed: number) => {
-    setObjectProps(prev => ({
-        ...prev,
-        rotation: {
-        ...prev.rotation,
-        speed,
-        },
-    }))
+        setObjectProps(prev => ({
+            ...prev,
+            rotation: {
+            ...prev.rotation,
+            speed,
+            },
+        }))
+    }
+
+    function formatCompactArrays(obj: ObjectProps): string {
+        const json = JSON.stringify(obj, null, 2)
+        return json.replace(/\[\s+([\d.,\s]+?)\s+\]/g, (_, content) => {
+            return `[${content.replace(/\s+/g, ' ').trim()}]`
+        })
     }
 
     useEffect(() => {
@@ -95,18 +90,20 @@ export default function Main() {
         if (fileUpload) {
             setFileURL(URL.createObjectURL(fileUpload));
         }
-
-        return () => {
-            
-        };
     }, [fileUpload])
 
     useEffect(() => {
-        
-        return () => {
-            
-        };
-    }, []);
+        if (editorText) {
+            let objBK = objectProps;
+            try {
+                setObjectProps(JSON.parse(editorText));
+            } catch (error) {
+                // console.log(JSON.parse(editorText));
+                // setObjectProps(objBK);
+                console.log(error) 
+            }
+        }
+    }, [editorText]);
 
     return (
         <ThemeProvider theme={customTheme}>
@@ -131,23 +128,29 @@ export default function Main() {
                     <VisuallyHiddenInput
                         type="file"
                         accept=".stl,.glb"
-                        // onChange={(event) => console.log(event.target.files)}
                         onChange={handleFileUpload} 
                         multiple={false}
                     />
                 </Button>
 
                 <div className="editor">
-                    <Editor 
-                        // height="100%" 
-                        defaultLanguage="javascript" 
-                        defaultValue="// some comment" 
+                   <Editor
+                        defaultLanguage="json"
+                        value={formatCompactArrays(objectProps)}
                         theme="vs-dark"
-                        onChange={e => setEditorText(e)}
+                        onMount={(editor, monaco) => {
+                            editorRef.current = editor
+                        }}
                     />
                     <div className="editor-buttons" style={{ display: 'flex', gap: 12 }}>
-                        <Button color="primary" variant="outlined" endIcon={<PlayCircleOutlineIcon />}>
-                        </Button>
+                        <Button 
+                            color="primary" 
+                            variant="outlined" 
+                            endIcon={<PlayCircleOutlineIcon />}
+                            onClick={() => {
+                                setEditorText(editorRef.current?.getValue())
+                            }}
+                        />
                         <Button 
                             variant="contained" 
                             color="secondary" 
