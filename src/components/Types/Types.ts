@@ -11,6 +11,14 @@ export type ObjectProps = {
     },
     camera: {
         fov: number,
+        near?: number,
+        aspect?: number,
+        far?: number,
+        zoom?: number,
+        focus?: number,
+        filmOffset?: number,
         position: [number, number, number],
+        rotation?: [number, number, number],
+        up?: [number, number, number],
     }
 };

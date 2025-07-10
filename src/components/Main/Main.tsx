@@ -10,7 +10,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import InfoIcon from '@mui/icons-material/Info';
 import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import { customTheme } from "../../Themes/Theme";
-import type * as monaco from 'monaco-editor'
+import * as monaco from 'monaco-editor'
 import "./main.css";
 import type { ObjectProps } from "../Types/Types";
 import ModelCanvas from "../Model/ModelCanvas";
@@ -103,6 +103,77 @@ export default function Main() {
         }
     }, [editorText]);
 
+// const generateCompletionsFromTypes = (obj: ObjectProps): monaco.languages.CompletionItem[] => {
+//   const suggestions: monaco.languages.CompletionItem[] = []
+
+//   const traverse = (node: any, path: string[] = []) => {
+//     for (const key in node) {
+//       const newPath = [...path, key]
+//       const value = node[key]
+
+//       if (typeof value === 'object' && !Array.isArray(value)) {
+//         traverse(value, newPath)
+//       } else {
+//         suggestions.push({
+//           label: newPath.join('.'),
+//           kind: monaco.languages.CompletionItemKind.Property,
+//           insertText: `"${newPath.join('.')}": ${JSON.stringify(value)}`,
+//           documentation: `Тип: ${typeof value}`,
+//           range: new monaco.Range(0, 0, 99, 99),
+//         })
+//       }
+//     }
+//   }
+
+//   traverse(obj)
+//   return suggestions
+// }
+
+const generateCompletionsFromTypes = (
+  obj: ObjectProps,
+  model: monaco.editor.ITextModel,
+  position: monaco.Position
+): monaco.languages.CompletionItem[] => {
+  const word = model.getWordUntilPosition(position)
+  const range = new monaco.Range(
+    position.lineNumber,
+    word.startColumn,
+    position.lineNumber,
+    word.endColumn
+  )
+
+  const suggestions: monaco.languages.CompletionItem[] = []
+
+  const traverse = (node: any, path: string[] = []) => {
+    for (const key in node) {
+      const newPath = [...path, key]
+      const value = node[key]
+
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value)
+      ) {
+        traverse(value, newPath)
+      } else {
+        suggestions.push({
+          label: newPath.join('.'),
+          kind: monaco.languages.CompletionItemKind.Property,
+          insertText: `"${newPath.join('.')}": ${JSON.stringify(value)}`,
+          documentation: `Тип: ${typeof value}`,
+          range,
+        })
+      }
+    }
+  }
+
+  traverse(obj)
+  return suggestions
+}
+
+
+
+
     return (
         <ThemeProvider theme={customTheme}>
             <div className="main">
@@ -128,12 +199,21 @@ export default function Main() {
 
                 <div className="editor">
                    <Editor
-                        defaultLanguage="json"
+                        // defaultLanguage="json"
                         value={formatCompactArrays(objectProps)}
                         theme="vs-dark"
+                        language="json"
                         onMount={(editor, monaco) => {
-                            editorRef.current = editor
-                        }}
+                        editorRef.current = editor
+                        monaco.languages.registerCompletionItemProvider('json', {
+                            provideCompletionItems: (model, position) => {
+                                return {
+                                    // suggestions: generateCompletionsFromTypes(objectProps),
+                                    suggestions: generateCompletionsFromTypes(objectProps, model, position),
+                                }
+                            }
+                        })
+                    }}
                     />
                     <div className="editor-buttons" style={{ display: 'flex', gap: 12 }}>
                         <Button 

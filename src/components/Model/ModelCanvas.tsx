@@ -22,14 +22,44 @@ export default function ModelCanvas({url = "", obj}: {url: string, obj: ObjectPr
     )
 }
 
-function CameraSync({ props }: { props: CameraProps }) {
+function CameraSync({ props }: { props: Record<string, any> }) {
   const { camera } = useThree()
 
   useEffect(() => {
-    camera.position.set(...props.position)
-    camera.fov = props.fov;
-    camera.updateProjectionMatrix();
-  }, [props]) 
+    // Обработка position отдельно
+    if (props.position && Array.isArray(props.position)) {
+      camera.position.set(...props.position)
+    }
 
-  return null // этот компонент ничего не рендерит, только синхронизирует
+    // Применение остальных свойств
+    Object.entries(props).forEach(([key, value]) => {
+      if (
+        key !== 'position' &&
+        typeof value !== 'function' &&
+        value !== undefined
+      ) {
+        try {
+          ;(camera as any)[key] = value
+        } catch (err) {
+          console.warn(`Error bad parametr ${key}:`, err)
+        }
+      }
+    })
+
+    camera.updateProjectionMatrix()
+  }, [props])
+
+  return null
 }
+
+// function CameraSync({ props }: { props: CameraProps }) {
+//   const { camera } = useThree()
+
+//   useEffect(() => {
+//     camera.position.set(...props.position)
+//     camera.fov = props.fov;
+//     camera.updateProjectionMatrix();
+//   }, [props]) 
+
+//   return null // этот компонент ничего не рендерит, только синхронизирует
+// }

@@ -9,8 +9,13 @@
   grid-auto-rows: 0;
 
   /* margin: 1rem 0; */
-  padding: var(--padding-base-big) 0;
+  /* margin: var(--padding-base-big) 0; */
   gap: var(--padding-base-big);
+}
+
+canvas {
+  height: auto !important;
+  width: auto !important;
 }
 
 .main span {

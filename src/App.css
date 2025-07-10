@@ -19,6 +19,7 @@ header {
 
   
   color: var(--dark-text-color);
+  margin-bottom: var(--padding-base-big);
 }
 
 header > div {
