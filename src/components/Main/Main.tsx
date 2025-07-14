@@ -12,7 +12,7 @@ import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
 import { customTheme } from "../../Themes/Theme";
 import * as monaco from 'monaco-editor'
 import "./main.css";
-import type { ObjectProps } from "../Types/Types";
+import { defaultObjectProps, type ObjectProps } from "../Types/Types";
 import ModelCanvas from "../Model/ModelCanvas";
 import { Checkbox } from "@mui/material";
 
@@ -27,7 +27,6 @@ const VisuallyHiddenInput = styled('input')({
   whiteSpace: 'nowrap',
   width: 1,
 });
-
 
 export default function Main() {
     const [fileUpload, setFileUpload] = useState<File | null>(null);
@@ -103,75 +102,6 @@ export default function Main() {
         }
     }, [editorText]);
 
-// const generateCompletionsFromTypes = (obj: ObjectProps): monaco.languages.CompletionItem[] => {
-//   const suggestions: monaco.languages.CompletionItem[] = []
-
-//   const traverse = (node: any, path: string[] = []) => {
-//     for (const key in node) {
-//       const newPath = [...path, key]
-//       const value = node[key]
-
-//       if (typeof value === 'object' && !Array.isArray(value)) {
-//         traverse(value, newPath)
-//       } else {
-//         suggestions.push({
-//           label: newPath.join('.'),
-//           kind: monaco.languages.CompletionItemKind.Property,
-//           insertText: `"${newPath.join('.')}": ${JSON.stringify(value)}`,
-//           documentation: `Тип: ${typeof value}`,
-//           range: new monaco.Range(0, 0, 99, 99),
-//         })
-//       }
-//     }
-//   }
-
-//   traverse(obj)
-//   return suggestions
-// }
-
-    // const generateCompletionsFromTypes = (
-    // obj: ObjectProps,
-    // model: monaco.editor.ITextModel,
-    // position: monaco.Position
-    // ): monaco.languages.CompletionItem[] => {
-    // const word = model.getWordUntilPosition(position)
-    // const range = new monaco.Range(
-    //     position.lineNumber,
-    //     word.startColumn,
-    //     position.lineNumber,
-    //     word.endColumn
-    // )
-
-    // const suggestions: monaco.languages.CompletionItem[] = []
-
-    // const traverse = (node: any, path: string[] = []) => {
-    //     for (const key in node) {
-    //     const newPath = [...path, key]
-    //     const value = node[key]
-
-    //     if (
-    //         typeof value === 'object' &&
-    //         value !== null &&
-    //         !Array.isArray(value)
-    //     ) {
-    //         traverse(value, newPath)
-    //     } else {
-    //         suggestions.push({
-    //         label: newPath.join('.'),
-    //         kind: monaco.languages.CompletionItemKind.Property,
-    //         insertText: `"${newPath.join('.')}": ${JSON.stringify(value)}`,
-    //         documentation: `Тип: ${typeof value}`,
-    //         range,
-    //         })
-    //     }
-    //     }
-    // }
-
-    // traverse(obj)
-    // return suggestions
-    // }
-
-
     const generateCompletionsFromTypes = (
         obj: ObjectProps,
         model: monaco.editor.ITextModel,
@@ -185,29 +115,29 @@ export default function Main() {
                 word.endColumn
             )
 
-            const lineText = model.getLineContent(position.lineNumber)
-            // const match = lineText.match(/"([\w.]+)"\s*:/)
-            // const currentKey = match?.[1] || ''
-
-            let mLine = model.getLineContent(position.lineNumber)
-            let match = mLine.match(/"(\w+)"\s*:\s*{?$/)
-            let currentKey = ''
+            let match: RegExpMatchArray | null = ["", ""];
+            let missMatch: Boolean = false;
             let startingLine = range.startLineNumber;
             for (let i = startingLine; i > 0; i--) {
                 let mLine = model.getLineContent(i)
+                if (mLine.trim() === "}," && !missMatch) {
+                    missMatch = true;
+                    console.log("Found missMatch: ", mLine);
+                }
+                console.log(mLine);
                 match = mLine.match(/"(\w+)"\s*:\s*{?$/);
                 if (match) {
-                    // console.log(match);
+                    if (missMatch) {
+                        missMatch = false;
+                        console.log("Missmatch fixed")
+                        continue;
+                    }
                     break;
                 }
 
             }
 
             console.log(match);
-
-                        // match = mLine.match(/"(\w+)"\s*:\s*{?$/);
-
-            // console.log(match)
 
             const suggestions: monaco.languages.CompletionItem[] = []
 
@@ -218,58 +148,32 @@ export default function Main() {
                 const fullPath = newPath.join('.')
 
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                    // Проблема не тут, похоже действительно от текста на строке.
                     traverse(value, newPath)
                 } else {
-                    // match = null;
-                    // let startingLine = range.startLineNumber;
-                    // for (let i = startingLine; i > 0; i--) {
-                    //     let mLine = model.getLineContent(i)
-                    //     match = mLine.match(/"(\w+)"\s*:\s*{?$/);
-                    //     if (match) {
-                    //         // console.log(match);
-                    //         break;
-                    //     }
-
-                    // }
-
                     console.group();
                         let ind = null;
-                        // console.log(fullPath)
-                        console.log(newPath)
 
-                        // if (newPath.length > 2) {
-                        //     newPath.length = 2;
-                        //     console.log(newPath)
-                        // }
-                        // console.log(fullPath.includes(match[1]))
-                        // console.log(fullPath.split("."));
+                        console.log(newPath) //
+
                         for (let i = 0; i < newPath.length; i++) {
                             if (match && newPath[i] == match[1]) {
-                                console.log("Index found: ", i)
+                                console.log("Index found: ", i) //
                                 ind = i+2;
                             }
                         }
 
-                        console.log("Length: ", newPath.length);
+                        console.log("Length: ", newPath.length); //
 
                         if (ind && newPath.length == ind) {
-                            console.log(key);
+                            console.log(key); //
                         }
-                        // console.log(newPath.length < 3);
-                        // console.log(newPath);
-                        // console.log(fullPath.includes(match[1]));
                     console.groupEnd();
 
-                    // if (!currentKey || fullPath.startsWith(currentKey)) {
-                    // if (match && fullPath.includes(match[1])) {
                     if (ind && newPath.length == ind) {
                     suggestions.push({
                         label: key,
                         insertText: `"${key}": ${JSON.stringify(value)}`,
-                        // label: fullPath,
                         kind: monaco.languages.CompletionItemKind.Property,
-                        // insertText: `"${fullPath}": ${JSON.stringify(value)}`,
                         documentation: `Тип: ${typeof value}`,
                         range,
                     })
@@ -278,8 +182,8 @@ export default function Main() {
             }
         }
 
-        traverse(obj)
-        return suggestions
+        traverse(obj);
+        return suggestions;
     }
 
 
@@ -287,6 +191,7 @@ export default function Main() {
         <ThemeProvider theme={customTheme}>
             <div className="main">
                 <div className="canvas">
+                    <div className="d"></div>
                     <ModelCanvas url={fileURL} obj={objectProps} />
                     <Button
                             component="label"
@@ -318,7 +223,7 @@ export default function Main() {
                             provideCompletionItems: (model, position) => {
                                 return {
                                     // suggestions: generateCompletionsFromTypes(objectProps),
-                                    suggestions: generateCompletionsFromTypes(objectProps, model, position),
+                                    suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
                                 }
                             }
                         })
