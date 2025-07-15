@@ -50,6 +50,8 @@ export default function Main() {
         }
     })
 
+    
+
     const handleFileUpload = (obj: { target: HTMLInputElement; }) => {
         const file = obj.target.files?.[0] || null;
         setFileUpload(file);
@@ -93,6 +95,10 @@ export default function Main() {
     useEffect(() => {
         if (editorText) {
             try {
+                let test = editorText.toString();
+                console.log("Editor text: ", editorText);
+
+                
                 setObjectProps(JSON.parse(editorText));
             } catch (error) {
                 // console.log(JSON.parse(editorText));
@@ -107,13 +113,20 @@ export default function Main() {
         model: monaco.editor.ITextModel,
         position: monaco.Position
         ): monaco.languages.CompletionItem[] => {
-            const word = model.getWordUntilPosition(position)
+            // const word = model.getWordUntilPosition(position)
             const range = new monaco.Range(
                 position.lineNumber,
-                word.startColumn,
+                // word.startColumn,
+                Math.max(1, position.column),
                 position.lineNumber,
-                word.endColumn
+                position.column
+                // word.endColumn
             )
+
+            console.group()
+                console.log(model)
+                // console.log(range)
+            console.groupEnd()
 
             let match: RegExpMatchArray | null = ["", ""];
             let missMatch: Boolean = false;
@@ -125,7 +138,7 @@ export default function Main() {
                     console.log("Found missMatch: ", mLine);
                 }
                 console.log(mLine);
-                match = mLine.match(/"(\w+)"\s*:\s*{?$/);
+                match = mLine.match(/(\w+)\s*:\s*{?$/);
                 if (match) {
                     if (missMatch) {
                         missMatch = false;
@@ -150,7 +163,7 @@ export default function Main() {
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                     traverse(value, newPath)
                 } else {
-                    console.group();
+                    console.group(); //
                         let ind = null;
 
                         console.log(newPath) //
@@ -167,7 +180,7 @@ export default function Main() {
                         if (ind && newPath.length == ind) {
                             console.log(key); //
                         }
-                    console.groupEnd();
+                    console.groupEnd(); //
 
                     if (ind && newPath.length == ind) {
                     suggestions.push({
@@ -185,6 +198,86 @@ export default function Main() {
         traverse(obj);
         return suggestions;
     }
+
+    const stringifyToDsl = (obj: any): string => {
+        const lines: string[] = []
+
+        const traverse = (node: any, path: string[] = []) => {
+            const indent = '  '
+            const section = path.join('.')
+            const contentLines: string[] = []
+
+            for (const key in node) {
+            const value = node[key]
+
+            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                // вложенный объект — новая секция
+                traverse(value, [...path, key])
+            } else {
+                const serialized =
+                Array.isArray(value) ? `[${value.join(', ')}]` :
+                typeof value === 'string' ? `"${value}"` :
+                `${value}`
+
+                contentLines.push(`${indent}${key} = ${serialized}`)
+            }
+            }
+
+            if (contentLines.length) {
+            lines.push(`${section}:`)
+            lines.push(...contentLines)
+            lines.push('')
+            }
+        }
+        lines.push("# Object Settings:\n")
+        traverse(obj)
+        return lines.join('\n')
+    }
+
+    const DSLtoJSONString = (str: string): string => {
+        const lines = str.split('\n')
+        const result: any = {}
+        let currentPath: string[] = []
+
+        for (const raw of lines) {
+            const line = raw.trim()
+            if (!line || line.startsWith('//') || line.startsWith('#')) continue
+
+            const sectionMatch = line.match(/^([\w.]+):$/)
+            if (sectionMatch) {
+            currentPath = sectionMatch[1].split('.')
+            continue
+            }
+
+            const kvMatch = line.match(/^(\w+)\s*=\s*(.+)$/)
+            if (!kvMatch || currentPath.length === 0) continue
+
+            const [ , key, rawValue ] = kvMatch
+            let value: any = rawValue.trim()
+
+            // Типизация значений
+            if (value === 'true') value = true
+            else if (value === 'false') value = false
+            else if (/^".*"$/.test(value)) value = value.slice(1, -1)
+            else if (/^\[.*\]$/.test(value)) {
+            try { value = JSON.parse(value) } catch { value = [] }
+            }
+            else if (!isNaN(Number(value))) value = parseFloat(value)
+
+            // Вставка по вложенному пути
+            let pointer = result
+            for (const segment of currentPath) {
+            if (!(segment in pointer)) pointer[segment] = {}
+            pointer = pointer[segment]
+            }
+            pointer[key] = value
+        }
+
+        return JSON.stringify(result, null, 2)
+    }
+
+
+
 
 
     return (
@@ -214,20 +307,60 @@ export default function Main() {
                 <div className="editor">
                    <Editor
                         // defaultLanguage="json"
-                        value={formatCompactArrays(objectProps)}
+                        // value={formatCompactArrays(objectProps)}
+                        value={stringifyToDsl(objectProps)}
                         theme="vs-dark"
-                        language="json"
+                        language="dsl"
+                        // language="json"
                         onMount={(editor, monaco) => {
-                        editorRef.current = editor
-                        monaco.languages.registerCompletionItemProvider('json', {
-                            provideCompletionItems: (model, position) => {
-                                return {
-                                    // suggestions: generateCompletionsFromTypes(objectProps),
-                                    suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
+                            editorRef.current = editor
+                            monaco.languages.register({ id: 'dsl' })
+                                monaco.languages.setMonarchTokensProvider('dsl', {
+                                    tokenizer: {
+                                        root: [
+                                        // Комментарии
+                                        [/^\s*#.*$/, 'comment'],
+
+                                        // Заголовки секций: object.rotation:
+                                        [/^[\w.]+:/, 'type.identifier'],
+
+                                        // Ключ = значение
+                                        [/\b\w+\b(?=\s*=)/, 'variable.name'],
+                                        [/=/, 'operator'],
+
+                                        // Строки
+                                        [/"[^"]*"/, 'string'],
+
+                                        // Числа
+                                        [/\b\d+(\.\d+)?\b/, 'number'],
+
+                                        // Массивы (простые)
+                                        [/\[.*?\]/, 'number'],
+
+                                        // Булевы
+                                        [/\b(true|false)\b/, 'keyword.constant'],
+
+                                        // Прочее
+                                        [/[{}[\],]/, 'delimiter']
+                                        ]
+                                    }
+                                })
+                            monaco.languages.registerCompletionItemProvider('dsl', {
+                                provideCompletionItems: (model, position) => {
+                                    return {
+
+                                        // suggestions: generateCompletionsFromTypes(objectProps),
+                                        suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
+                                    }
                                 }
-                            }
-                        })
-                    }}
+                            })
+                            monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+                                validate: false,
+                                allowComments: true,
+                                schemas: [] // можно оставить пустым
+                            })
+                        }
+                    }
                     />
                     <div className="editor-buttons" style={{ display: 'flex', gap: 12 }}>
                         <Button 
@@ -235,7 +368,8 @@ export default function Main() {
                             variant="outlined" 
                             endIcon={<PlayCircleOutlineIcon />}
                             onClick={() => {
-                                setEditorText(editorRef.current?.getValue())
+                                setEditorText(DSLtoJSONString(editorRef.current?.getValue()))
+                                // setEditorText(editorRef.current?.getValue())
                             }}
                         />
                         <Button 

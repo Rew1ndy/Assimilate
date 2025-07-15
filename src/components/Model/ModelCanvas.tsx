@@ -9,7 +9,7 @@ type CameraProps = ObjectProps['camera'];
 
 
 export default function ModelCanvas({url = "", obj}: {url: string, obj: ObjectProps}) {
-    console.log(obj.camera)
+    // console.log(obj.camera)
 
     return(
         <Canvas className="canvasWindow">

@@ -12,7 +12,7 @@ export default function ModelObject({ url, objectProps }: { url: string, objectP
   const meshRef = useRef<THREE.Mesh>(null!)
   const materialRef = useRef<THREE.ShaderMaterial>(null!)
 
-  if (objectProps.object.rotation.isRotating) {
+  if (objectProps?.object.rotation.isRotating) {
       useFrame(({ clock }) => {
       if (materialRef.current) {
         materialRef.current.uniforms.uTime.value = clock.getElapsedTime()
