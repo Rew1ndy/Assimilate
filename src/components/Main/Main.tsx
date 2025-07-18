@@ -1,20 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
-import { styled, ThemeProvider } from '@mui/material/styles';
-import Button from '@mui/material/Button';
-import Slider from '@mui/material/Slider';
-import { CheckBox } from "@mui/icons-material";
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useEffect, useRef, useState } from "react";
 import { Editor } from "@monaco-editor/react";
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import InfoIcon from '@mui/icons-material/Info';
-import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
-import { customTheme } from "../../Themes/Theme";
-import * as monaco from 'monaco-editor'
-import "./main.css";
+import { styled, ThemeProvider } from '@mui/material/styles';
+import { Checkbox, Slider, Button, Box, Tabs, Tab, Collapse } from "@mui/material";
+import { CloudUpload, ChevronLeft, ChevronRight, Info, PlayCircleOutline } from '@mui/icons-material'
+
 import { defaultObjectProps, type ObjectProps } from "../Types/Types";
+import { DSLtoJSONString, stringifyToDsl } from "./Syntax/DslFormatter";
+import { generateCompletionsFromTypes } from "./Syntax/Highlighter";
+import * as monaco from 'monaco-editor'
+import { customTheme } from "../../Themes/Theme";
 import ModelCanvas from "../Model/ModelCanvas";
-import { Checkbox } from "@mui/material";
+
+import "./main.css";
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -28,45 +25,63 @@ const VisuallyHiddenInput = styled('input')({
   width: 1,
 });
 
+interface TabPanelProps {
+  children: React.ReactNode
+  value: number
+  index: number
+}
+
+const TabPanel = ({ children, value, index }: TabPanelProps) => (
+  value === index ? <Box sx={{ p: 2 }}>{children}</Box> : null
+)
+
+const defaultProps: ObjectProps = {
+    object: {
+        rotation: { 
+            axis: 'z', 
+            speed: 0.005, 
+            direction: 1,
+            isRotating: true,
+        },
+        scale: [1, 1, 1],
+        position: [0, 0, 0],
+    },
+    camera: {
+        fov: 60,
+        position: [0, -3, 1],
+    }
+}
+
 export default function Main() {
     const [fileUpload, setFileUpload] = useState<File | null>(null);
     const [fileURL, setFileURL] = useState<string>("");
     const [editorText, setEditorText] = useState<string | undefined>();
-    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
-    const [objectProps, setObjectProps] = useState<ObjectProps>({
-        object: {
-            rotation: { 
-                axis: 'z', 
-                speed: 0.005, 
-                direction: 1,
-                isRotating: true,
-            },
-            scale: [1, 1, 1],
-            position: [0, 0, 0],
-        },
-        camera: {
-            fov: 60,
-            position: [0, -3, 1],
-        }
-    })
+    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    const [objectProps, setObjectProps] = useState<ObjectProps>(defaultProps);
+    const [tabValue, setTabValue] = useState(0);
+    const [isHint, setHint] = useState(true);
 
-    
+    const tabs = [
+        { label: 'Config', content: 'Configure object and camera properties to define the scene layout.' },
+        { label: 'Vertex', content: 'Use the vertex shader to manipulate geometry and control vertex positions.' },
+        { label: 'Fragment', content: 'Use the fragment shader to define pixel colors, lighting, and visual effects.' }
+    ]
 
     const handleFileUpload = (obj: { target: HTMLInputElement; }) => {
         const file = obj.target.files?.[0] || null;
         setFileUpload(file);
     }
 
-    const updateObjectPath = (path: string, value: any, reverce: boolean = false) => {
-        const keys = path.split('.')
+    const updateObjectPath = (path: string, value: any) => {
+        const keys: string[] = path.split('.')
 
         setObjectProps(prev => {
             const updated = structuredClone(prev)
-            let pointer = updated
+            let pointer: any = updated
 
             for (let i = 0; i < keys.length - 1; i++) {
-            pointer[keys[i]] = { ...pointer[keys[i]] }
-            pointer = pointer[keys[i]]
+                pointer[keys[i]] = { ...pointer[keys[i]] }
+                pointer = pointer[keys[i]]
             }
 
             pointer[keys.at(-1)!] = value
@@ -74,15 +89,18 @@ export default function Main() {
         })
     }
 
-
-    function formatCompactArrays(obj: any): string {
-        const json = JSON.stringify(obj, null, 2)
-
-        // Ищет массивы типа: [\n  0,\n  -3,\n  1\n]
-        return json.replace(/\[\s*([\d\s.,-]+?)\s*\]/g, (match) => {
-            const compact = match.replace(/\s+/g, ' ').trim()
-            return compact
-        })
+    const isValidByTemplate = (template: any, obj: any): boolean => {
+        if (typeof template !== typeof obj) return false
+        if (Array.isArray(template)) {
+            return Array.isArray(obj) && obj.length === template.length
+        }
+        if (typeof template === 'object' && template !== null) {
+            for (const key in template) {
+            if (!(key in obj)) return false
+            if (!isValidByTemplate(template[key], obj[key])) return false
+            }
+        }
+        return true
     }
 
     useEffect(() => {
@@ -95,190 +113,15 @@ export default function Main() {
     useEffect(() => {
         if (editorText) {
             try {
-                let test = editorText.toString();
-                console.log("Editor text: ", editorText);
-
-                
-                setObjectProps(JSON.parse(editorText));
+                const value = JSON.parse(editorText);
+                // console.log("Editor text: ", editorText);
+                if (isValidByTemplate(defaultProps, value)) setObjectProps(value);
+                else console.error("Check valid types pls");
             } catch (error) {
-                // console.log(JSON.parse(editorText));
-                // setObjectProps(objBK);
                 console.log(error) 
             }
         }
     }, [editorText]);
-
-    const generateCompletionsFromTypes = (
-        obj: ObjectProps,
-        model: monaco.editor.ITextModel,
-        position: monaco.Position
-        ): monaco.languages.CompletionItem[] => {
-            // const word = model.getWordUntilPosition(position)
-            const range = new monaco.Range(
-                position.lineNumber,
-                // word.startColumn,
-                Math.max(1, position.column),
-                position.lineNumber,
-                position.column
-                // word.endColumn
-            )
-
-            console.group()
-                console.log(model)
-                // console.log(range)
-            console.groupEnd()
-
-            let match: RegExpMatchArray | null = ["", ""];
-            let missMatch: Boolean = false;
-            let startingLine = range.startLineNumber;
-            for (let i = startingLine; i > 0; i--) {
-                let mLine = model.getLineContent(i)
-                if (mLine.trim() === "}," && !missMatch) {
-                    missMatch = true;
-                    console.log("Found missMatch: ", mLine);
-                }
-                console.log(mLine);
-                match = mLine.match(/(\w+)\s*:\s*{?$/);
-                if (match) {
-                    if (missMatch) {
-                        missMatch = false;
-                        console.log("Missmatch fixed")
-                        continue;
-                    }
-                    break;
-                }
-
-            }
-
-            console.log(match);
-
-            const suggestions: monaco.languages.CompletionItem[] = []
-
-            const traverse = (node: any, path: string[] = []) => {
-                for (const key in node) {
-                const newPath = [...path, key]
-                const value = node[key]
-                const fullPath = newPath.join('.')
-
-                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                    traverse(value, newPath)
-                } else {
-                    console.group(); //
-                        let ind = null;
-
-                        console.log(newPath) //
-
-                        for (let i = 0; i < newPath.length; i++) {
-                            if (match && newPath[i] == match[1]) {
-                                console.log("Index found: ", i) //
-                                ind = i+2;
-                            }
-                        }
-
-                        console.log("Length: ", newPath.length); //
-
-                        if (ind && newPath.length == ind) {
-                            console.log(key); //
-                        }
-                    console.groupEnd(); //
-
-                    if (ind && newPath.length == ind) {
-                    suggestions.push({
-                        label: key,
-                        insertText: `"${key}": ${JSON.stringify(value)}`,
-                        kind: monaco.languages.CompletionItemKind.Property,
-                        documentation: `Тип: ${typeof value}`,
-                        range,
-                    })
-                    }
-                }
-            }
-        }
-
-        traverse(obj);
-        return suggestions;
-    }
-
-    const stringifyToDsl = (obj: any): string => {
-        const lines: string[] = []
-
-        const traverse = (node: any, path: string[] = []) => {
-            const indent = '  '
-            const section = path.join('.')
-            const contentLines: string[] = []
-
-            for (const key in node) {
-            const value = node[key]
-
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                // вложенный объект — новая секция
-                traverse(value, [...path, key])
-            } else {
-                const serialized =
-                Array.isArray(value) ? `[${value.join(', ')}]` :
-                typeof value === 'string' ? `"${value}"` :
-                `${value}`
-
-                contentLines.push(`${indent}${key} = ${serialized}`)
-            }
-            }
-
-            if (contentLines.length) {
-            lines.push(`${section}:`)
-            lines.push(...contentLines)
-            lines.push('')
-            }
-        }
-        lines.push("# Object Settings:\n")
-        traverse(obj)
-        return lines.join('\n')
-    }
-
-    const DSLtoJSONString = (str: string): string => {
-        const lines = str.split('\n')
-        const result: any = {}
-        let currentPath: string[] = []
-
-        for (const raw of lines) {
-            const line = raw.trim()
-            if (!line || line.startsWith('//') || line.startsWith('#')) continue
-
-            const sectionMatch = line.match(/^([\w.]+):$/)
-            if (sectionMatch) {
-            currentPath = sectionMatch[1].split('.')
-            continue
-            }
-
-            const kvMatch = line.match(/^(\w+)\s*=\s*(.+)$/)
-            if (!kvMatch || currentPath.length === 0) continue
-
-            const [ , key, rawValue ] = kvMatch
-            let value: any = rawValue.trim()
-
-            // Типизация значений
-            if (value === 'true') value = true
-            else if (value === 'false') value = false
-            else if (/^".*"$/.test(value)) value = value.slice(1, -1)
-            else if (/^\[.*\]$/.test(value)) {
-            try { value = JSON.parse(value) } catch { value = [] }
-            }
-            else if (!isNaN(Number(value))) value = parseFloat(value)
-
-            // Вставка по вложенному пути
-            let pointer = result
-            for (const segment of currentPath) {
-            if (!(segment in pointer)) pointer[segment] = {}
-            pointer = pointer[segment]
-            }
-            pointer[key] = value
-        }
-
-        return JSON.stringify(result, null, 2)
-    }
-
-
-
-
 
     return (
         <ThemeProvider theme={customTheme}>
@@ -292,7 +135,7 @@ export default function Main() {
                             variant="contained"
                             color="secondary"
                             tabIndex={-1}
-                            startIcon={<CloudUploadIcon />}
+                            startIcon={<CloudUpload />}
                         >
                         Upload files
                         <VisuallyHiddenInput
@@ -305,13 +148,49 @@ export default function Main() {
                 </div>
 
                 <div className="editor">
+                    <div className="editor-tabs">
+                        <Box sx={{ width: '100%' }}>
+                            <Tabs 
+                                value={tabValue} 
+                                onChange={(_, c) => { 
+                                    setTabValue(c); 
+                                    setTimeout(() => {
+                                        setHint(true)
+                                    }, 100);
+                                }} 
+                                textColor="primary" 
+                                indicatorColor="primary"
+                            >
+                                {tabs.map((tab, i) => (
+                                <Tab 
+                                    key={i} 
+                                    label={tab.label} 
+                                    onClick={() => {
+                                        if (i === tabValue) {
+                                            setHint(!isHint);
+                                        }
+                                    }}
+                                />
+                                ))}
+                            </Tabs>
+                            {tabs.map((tab, i) => (
+                                <TabPanel key={i} value={tabValue} index={i}>
+                                    <Collapse in={isHint} timeout="auto" unmountOnExit>
+                                        {tab.content}
+                                    </Collapse>
+                                </TabPanel>
+                            ))}
+                            {/* { isHint && tabs.map((tab, i) => (
+                                <TabPanel key={i} value={tabValue} index={i}>
+                                    {tab.content}
+                                </TabPanel>
+                            ))} */}
+                        </Box>
+                    </div>
                    <Editor
-                        // defaultLanguage="json"
-                        // value={formatCompactArrays(objectProps)}
                         value={stringifyToDsl(objectProps)}
                         theme="vs-dark"
                         language="dsl"
-                        // language="json"
                         onMount={(editor, monaco) => {
                             editorRef.current = editor
                             monaco.languages.register({ id: 'dsl' })
@@ -348,8 +227,6 @@ export default function Main() {
                             monaco.languages.registerCompletionItemProvider('dsl', {
                                 provideCompletionItems: (model, position) => {
                                     return {
-
-                                        // suggestions: generateCompletionsFromTypes(objectProps),
                                         suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
                                     }
                                 }
@@ -357,7 +234,7 @@ export default function Main() {
                             monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
                                 validate: false,
                                 allowComments: true,
-                                schemas: [] // можно оставить пустым
+                                schemas: []
                             })
                         }
                     }
@@ -366,17 +243,17 @@ export default function Main() {
                         <Button 
                             color="primary" 
                             variant="outlined" 
-                            endIcon={<PlayCircleOutlineIcon />}
+                            endIcon={<PlayCircleOutline />}
                             onClick={() => {
-                                setEditorText(DSLtoJSONString(editorRef.current?.getValue()))
-                                // setEditorText(editorRef.current?.getValue())
+                                if (editorRef?.current) {
+                                    setEditorText(DSLtoJSONString(editorRef.current.getValue()))
+                                }
                             }}
                         />
                         <Button 
                             variant="contained" 
                             color="secondary" 
-                            endIcon={<ChevronLeftIcon />} 
-                            // onClick={() => updateDirection(-1)}
+                            endIcon={<ChevronLeft />} 
                             onClick={() => {
                                 updateObjectPath("object.rotation.direction", -1)
                             }}
@@ -384,25 +261,25 @@ export default function Main() {
                         <Button 
                             variant="contained" 
                             color="secondary" 
-                            endIcon={<ChevronRightIcon />} 
+                            endIcon={<ChevronRight />} 
                             onClick={() => {
                                 updateObjectPath("object.rotation.direction", 1)
                             }}
                         />
                         <Checkbox 
-                            onChange={(e) => {
-                                updateObjectPath("object.rotation.direction", e.target.checked)} 
-                            }
                             defaultChecked 
+                            onChange={(e) => {
+                                updateObjectPath("object.rotation.direction", e.target.checked)
+                            }}
                             />
-                        <Button variant="outlined" color="info" endIcon={<InfoIcon />}>
+                        <Button variant="outlined" color="info" endIcon={<Info />}>
                         </Button>
                     </div>
                     <Slider
                         aria-label="Rotation speed"
                         defaultValue={objectProps.object.rotation.speed}
                         value={objectProps.object.rotation.speed}
-                        onChange={(e, value) => {
+                        onChange={(_, value) => {
                             if (typeof value === 'number') {
                                 updateObjectPath("object.rotation.speed", value)
                             }

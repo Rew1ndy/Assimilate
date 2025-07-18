@@ -12,6 +12,7 @@ html, body, * {
   --dark-background-color: #161619;
   --dark-button-color: #444448;
   --dark-text-color: #f0f8ff;
+  --dark-text-hint: #494d5c;
   --padding-base-big: .8rem;
 }
 
