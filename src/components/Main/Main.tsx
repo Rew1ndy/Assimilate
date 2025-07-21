@@ -6,7 +6,7 @@ import { CloudUpload, ChevronLeft, ChevronRight, Info, PlayCircleOutline } from 
 
 import { defaultObjectProps, type ObjectProps } from "../Types/Types";
 import { DSLtoJSONString, stringifyToDsl } from "./Syntax/DslFormatter";
-import { generateCompletionsFromTypes } from "./Syntax/Highlighter";
+import { generateCompletionsFromTypes, GLSLKeywords, language } from "./Syntax/Highlighter";
 import * as monaco from 'monaco-editor'
 import { customTheme } from "../../Themes/Theme";
 import ModelCanvas from "../Model/ModelCanvas";
@@ -50,7 +50,22 @@ const defaultProps: ObjectProps = {
         fov: 60,
         position: [0, -3, 1],
     }
+};
+
+const defaultVertexProps: string = `varying vec2 vUv;
+void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
+`;
+
+const defaultFragmentProps: string = `uniform float uTime;
+varying vec2 vUv;
+void main() {
+    vec3 color = 0.5 + 0.5 * cos(uTime + vUv.xyx + vec3(0,2,4));
+    gl_FragColor = vec4(color, 1.0);
+}
+`;
 
 export default function Main() {
     const [fileUpload, setFileUpload] = useState<File | null>(null);
@@ -58,6 +73,8 @@ export default function Main() {
     const [editorText, setEditorText] = useState<string | undefined>();
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [objectProps, setObjectProps] = useState<ObjectProps>(defaultProps);
+    const [vertexProps, setVertexProps] = useState<string>(defaultVertexProps);
+    const [fragmentProps, setFragmentProps] = useState<string>(defaultFragmentProps);
     const [tabValue, setTabValue] = useState(0);
     const [isHint, setHint] = useState(true);
 
@@ -112,11 +129,23 @@ export default function Main() {
 
     useEffect(() => {
         if (editorText) {
+            // console.log(editorText)
             try {
-                const value = JSON.parse(editorText);
-                // console.log("Editor text: ", editorText);
-                if (isValidByTemplate(defaultProps, value)) setObjectProps(value);
-                else console.error("Check valid types pls");
+                switch (tabValue) {
+                    case 0:
+                        const value = JSON.parse(editorText);
+                        if (isValidByTemplate(defaultProps, value)) setObjectProps(value);
+                        else console.error("Check valid types pls");
+                        break;
+                    case 1: 
+                        setVertexProps(editorText);
+                        break;
+                    case 2: 
+                        setFragmentProps(editorText);
+                        break;
+                    default:
+                        break;
+                }
             } catch (error) {
                 console.log(error) 
             }
@@ -128,7 +157,7 @@ export default function Main() {
             <div className="main">
                 <div className="canvas">
                     <div className="d"></div>
-                    <ModelCanvas url={fileURL} obj={objectProps} />
+                    <ModelCanvas url={fileURL} obj={objectProps} vertex={vertexProps} fragment={fragmentProps} />
                     <Button
                             component="label"
                             role={undefined}
@@ -188,9 +217,13 @@ export default function Main() {
                         </Box>
                     </div>
                    <Editor
-                        value={stringifyToDsl(objectProps)}
+                        value={
+                            tabValue === 0 ? stringifyToDsl(objectProps) :
+                            tabValue === 1 ? vertexProps :
+                            fragmentProps
+                        }
                         theme="vs-dark"
-                        language="dsl"
+                        language={tabValue === 0 ? 'dsl' : 'glsl'}
                         onMount={(editor, monaco) => {
                             editorRef.current = editor
                             monaco.languages.register({ id: 'dsl' })
@@ -224,18 +257,15 @@ export default function Main() {
                                         ]
                                     }
                                 })
-                            monaco.languages.registerCompletionItemProvider('dsl', {
-                                provideCompletionItems: (model, position) => {
-                                    return {
-                                        suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
+                                monaco.languages.registerCompletionItemProvider('dsl', {
+                                    provideCompletionItems: (model, position) => {
+                                        return {
+                                            suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
+                                        }
                                     }
-                                }
-                            })
-                            monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-                                validate: false,
-                                allowComments: true,
-                                schemas: []
-                            })
+                                })
+                                monaco.languages.register({ id: 'glsl' })
+                                monaco.languages.setMonarchTokensProvider('glsl', language)
                         }
                     }
                     />
@@ -246,7 +276,20 @@ export default function Main() {
                             endIcon={<PlayCircleOutline />}
                             onClick={() => {
                                 if (editorRef?.current) {
-                                    setEditorText(DSLtoJSONString(editorRef.current.getValue()))
+                                    // setEditorText(DSLtoJSONString(editorRef.current.getValue()))
+                                    switch (tabValue) {
+                                        case 0:
+                                            setEditorText(DSLtoJSONString(editorRef.current.getValue()))
+                                            break;
+                                        case 1: 
+                                            setEditorText(editorRef.current.getValue())
+                                            break;
+                                        case 2: 
+                                            setEditorText(editorRef.current.getValue())
+                                            break;
+                                        default:
+                                            break;
+                                    }
                                 }
                             }}
                         />
@@ -269,7 +312,7 @@ export default function Main() {
                         <Checkbox 
                             defaultChecked 
                             onChange={(e) => {
-                                updateObjectPath("object.rotation.direction", e.target.checked)
+                                updateObjectPath("object.rotation.direction", e.target.checked ? 1 : -1)
                             }}
                             />
                         <Button variant="outlined" color="info" endIcon={<Info />}>

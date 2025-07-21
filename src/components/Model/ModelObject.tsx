@@ -7,7 +7,7 @@ import { vertexShader, fragmentShader } from './Shaders'
 
 import type { ObjectProps } from '../Types/Types';
 
-export default function ModelObject({ url, objectProps }: { url: string, objectProps: ObjectProps }) {
+export default function ModelObject({ url, objectProps, vertexProps, fragmentProps }: { url: string, objectProps: ObjectProps, vertexProps: string, fragmentProps: string }) {
   const geometry = useLoader(STLLoader, url)
   const meshRef = useRef<THREE.Mesh>(null!)
   const materialRef = useRef<THREE.ShaderMaterial>(null!)
@@ -21,13 +21,19 @@ export default function ModelObject({ url, objectProps }: { url: string, objectP
     })
   }
 
+  console.log("Vertex: props: ", vertexProps)
+  /// Добавить защиту от краша при неправильном шейдере с возвратом пераметров обратно (мб try catch finaly...)
+  /// Убрать лишний код из главного + перенести обработку можно в MCanvas
   return (
     <mesh geometry={geometry} ref={meshRef}>
       {/* <meshStandardMaterial color="orange" /> */}
       <shaderMaterial
         ref={materialRef}
-        vertexShader={vertexShader}
-        fragmentShader={fragmentShader}
+        key={vertexProps + fragmentProps} // принудительно пересоздаёт компонент
+        // vertexShader={ vertexProps || vertexShader }
+        vertexShader={ vertexProps}
+        // fragmentShader={ fragmentProps || fragmentShader }
+        fragmentShader={ fragmentProps }
         uniforms={{ uTime: { value: 0 } }}
       />
     </mesh>

@@ -8,14 +8,14 @@ import { useEffect } from "react"
 type CameraProps = ObjectProps['camera'];
 
 
-export default function ModelCanvas({url = "", obj}: {url: string, obj: ObjectProps}) {
+export default function ModelCanvas({url = "", obj, vertex, fragment}: {url: string, obj: ObjectProps, vertex: string, fragment: string}) {
     // console.log(obj.camera)
 
     return(
         <Canvas className="canvasWindow">
             <ambientLight />
             <pointLight position={[5, 5, 5]} />
-            {url && <Model url={url} objectProps={obj} />}
+            {url && <Model url={url} objectProps={obj} vertexProps={vertex} fragmentProps={fragment} />}
             <OrbitControls />
             <CameraSync props={obj.camera} />
         </Canvas>
