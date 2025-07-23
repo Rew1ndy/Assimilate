@@ -312,9 +312,9 @@ export default function Main() {
                         <Checkbox 
                             defaultChecked 
                             onChange={(e) => {
-                                updateObjectPath("object.rotation.direction", e.target.checked ? 1 : -1)
+                                updateObjectPath("object.rotation.isRotating", e.target.checked)
                             }}
-                            />
+                        />
                         <Button variant="outlined" color="info" endIcon={<Info />}>
                         </Button>
                     </div>
