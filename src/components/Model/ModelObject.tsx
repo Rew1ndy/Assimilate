@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
 // Типы
-interface ObjectProps {
+type ObjectProps = {
   object: {
     rotation: {
       isRotating: boolean;
@@ -16,10 +16,11 @@ interface ObjectProps {
   };
 }
 
-interface ShaderError {
-  type: 'vertex' | 'fragment' | 'link' | 'validate' | 'webgl';
+export type ShaderError = {
+  type: 'vertex' | 'fragment' | 'link' | 'validate' | 'webgl' | 'success';
   message: string;
   raw?: string;
+  valid: boolean;
 }
 
 // Валидация шейдеров через WebGL
@@ -47,7 +48,7 @@ function validateShaderInWebGL(vertex: string, fragment: string) {
     ${fragment}
   `;
 
-  // Компиляция vertex
+  // Compile vertex
   const vert = gl.createShader(gl.VERTEX_SHADER);
   gl.shaderSource(vert, patchedVertex);
   gl.compileShader(vert);
@@ -57,7 +58,7 @@ function validateShaderInWebGL(vertex: string, fragment: string) {
     return { valid: false, type: 'vertex', log } as const;
   }
 
-  // Компиляция fragment
+  // Compile fragment
   const frag = gl.createShader(gl.FRAGMENT_SHADER);
   gl.shaderSource(frag, patchedFragment);
   gl.compileShader(frag);
@@ -67,7 +68,7 @@ function validateShaderInWebGL(vertex: string, fragment: string) {
     return { valid: false, type: 'fragment', log } as const;
   }
 
-  // Линковка
+  // Links
   gl.attachShader(program, vert);
   gl.attachShader(program, frag);
   gl.linkProgram(program);
@@ -77,7 +78,7 @@ function validateShaderInWebGL(vertex: string, fragment: string) {
     return { valid: false, type: 'link', log } as const;
   }
 
-  // Валидация
+  // Validation
   gl.validateProgram(program);
   if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
     const log = gl.getProgramInfoLog(program) || 'Validation failed';
@@ -129,10 +130,12 @@ const SafeShaderMaterial = ({
     const validation = validateShaderInWebGL(vertex, fragment);
 
     if (!validation.valid) {
+      // Передаем сообщение об ошибке
       const err: ShaderError = {
         type: validation.type || 'webgl',
         message: parseGlslError(validation.log),
         raw: validation.log,
+        valid: false
       };
       onError(err);
 
@@ -144,6 +147,15 @@ const SafeShaderMaterial = ({
       });
       setMaterial(fallback);
       return;
+    } else {
+      // Передаем сообщение об успешной компиляции
+      const err: ShaderError = {
+          type: 'success',
+          message: 'Shader compiled successful',
+          raw: validation.log,
+          valid: true
+      };
+      onError(err)
     }
 
     // Сохраняем как валидный
@@ -169,16 +181,18 @@ const SafeShaderMaterial = ({
 };
 
 // Основной компонент
-export default function ModelObject({
+export function ModelObject({
   url,
   objectProps,
   vertexProps,
   fragmentProps,
+  shadeError
 }: {
   url: string;
   objectProps: ObjectProps;
   vertexProps: string;
   fragmentProps: string;
+  shadeError: (error: ShaderError) => void;
 }) {
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -186,8 +200,9 @@ export default function ModelObject({
 
   const handleError = useCallback((err: ShaderError) => {
     console.warn('[Shader Error]', err);
-    setShaderError(`${err.type.toUpperCase()}: ${err.message}`);
+    // setShaderError(`${err.type.toUpperCase()}: ${err.message}`);
     console.error("My Shader Error")
+    shadeError(err)
   }, []);
 
   const uniforms = {

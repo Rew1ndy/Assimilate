@@ -156,7 +156,7 @@ export default function Main() {
         <ThemeProvider theme={customTheme}>
             <div className="main">
                 <div className="canvas">
-                    <div className="d"></div>
+                    {/* <div className="d"></div> */}
                     <ModelCanvas url={fileURL} obj={objectProps} vertex={vertexProps} fragment={fragmentProps} />
                     <Button
                             component="label"

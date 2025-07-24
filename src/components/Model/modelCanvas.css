@@ -1,0 +1,62 @@
+.canvasWindow {
+  /* height: auto !important; */
+  /* display: table; */
+  /* overflow: visible !important; */
+  position: absolute;
+  overflow: hidden;
+}
+
+.canvasWindow > div {
+  /* position: absolute; */
+  /* top: 0; */
+  /* left: 100%; */
+  position: relative;
+}
+
+.sceneAlert {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    /* transform: translate(-50%, -50px); */
+    pointer-events: none;
+
+    z-index: 999;
+    animation: .3s ease-in 2s errorAnimate;
+}
+
+.fade-slide-in {
+  opacity: 0;
+  /* transform: translateY(100%); */
+  transform: translate(-50%, 100%);
+  animation: fadeSlideIn 0.3s forwards;
+}
+
+.fade-slide-out {
+  animation: fadeSlideOut 0.3s forwards;
+}
+
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    /* transform: translateY(0); */
+    transform: translate(-50%, -50px);
+  }
+}
+
+@keyframes fadeSlideOut {
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* @keyframes errorAnimate {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+} */

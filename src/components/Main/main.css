@@ -45,22 +45,10 @@ canvas {
   /* display: grid;
   grid-template-rows: 1fr auto; */
   display: flex;
+  position: relative;
+  overflow: hidden;
   flex-direction: column;
   height: 100% !important;
-}
-
-.canvasWindow {
-  /* height: auto !important; */
-  /* display: table; */
-  overflow: visible !important;
-  position: absolute;
-}
-
-.canvasWindow > div {
-  /* position: absolute; */
-  /* top: 0; */
-  /* left: 100%; */
-  position: relative;
 }
 
 .monaco-editor {
