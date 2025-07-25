@@ -10,7 +10,7 @@ import "./modelCanvas.css";
 
 type CameraProps = ObjectProps['camera'];
 
-function CameraSync({ props }: { props: Record<string, any> }) {
+function CameraSync({ props }: { props: CameraProps }) {
   const { camera } = useThree()
 
   useEffect(() => {

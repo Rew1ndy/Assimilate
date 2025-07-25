@@ -4,12 +4,14 @@ import { styled, ThemeProvider } from '@mui/material/styles';
 import { Checkbox, Slider, Button, Box, Tabs, Tab, Collapse } from "@mui/material";
 import { CloudUpload, ChevronLeft, ChevronRight, Info, PlayCircleOutline } from '@mui/icons-material'
 
-import { defaultObjectProps, type ObjectProps } from "../Types/Types";
+import { defaultObjectProps } from "../Types/Types";
+import type { ObjectProps } from "../Types/Types";
 import { DSLtoJSONString, stringifyToDsl } from "./Syntax/DslFormatter";
-import { generateCompletionsFromTypes, GLSLKeywords, language } from "./Syntax/Highlighter";
+import { generateCompletionsFromTypes, language } from "./Syntax/Highlighter";
 import * as monaco from 'monaco-editor'
 import { customTheme } from "../../Themes/Theme";
 import ModelCanvas from "../Model/ModelCanvas";
+import { fragmentShader, vertexShader } from "../Model/Shaders";
 
 import "./main.css";
 
@@ -52,36 +54,64 @@ const defaultProps: ObjectProps = {
     }
 };
 
-const defaultVertexProps: string = `varying vec2 vUv;
-void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}
-`;
-
-const defaultFragmentProps: string = `uniform float uTime;
-varying vec2 vUv;
-void main() {
-    vec3 color = 0.5 + 0.5 * cos(uTime + vUv.xyx + vec3(0,2,4));
-    gl_FragColor = vec4(color, 1.0);
-}
-`;
-
 export default function Main() {
     const [fileUpload, setFileUpload] = useState<File | null>(null);
     const [fileURL, setFileURL] = useState<string>("");
     const [editorText, setEditorText] = useState<string | undefined>();
-    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const [objectProps, setObjectProps] = useState<ObjectProps>(defaultProps);
-    const [vertexProps, setVertexProps] = useState<string>(defaultVertexProps);
-    const [fragmentProps, setFragmentProps] = useState<string>(defaultFragmentProps);
+    const [vertexProps, setVertexProps] = useState<string>(vertexShader);
+    const [fragmentProps, setFragmentProps] = useState<string>(fragmentShader);
     const [tabValue, setTabValue] = useState(0);
     const [isHint, setHint] = useState(true);
+    const [panelWidth, setPanelWidth] = useState(30); // в процентах
+
+    const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    const separatorDownRef = useRef<boolean>(false);
+    const separatorRef = useRef<HTMLDivElement | null>(null);
+    
+    useEffect(() => {
+        const separator = separatorRef.current;
+        if (!separator) return;
+
+        const onDown = () => handleSeparatorDown();
+        const onMove = (e: MouseEvent) => handleSeparatorMove(e);
+        const onUp = () => handleSeparatorUp();
+
+        separator.addEventListener('mousedown', onDown);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+
+        return () => {
+            separator.removeEventListener('mousedown', onDown);
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+        };
+    }, []); // Все обработчики стабильны
+    
+    const handleSeparatorMove = (e: MouseEvent) => {
+        if (!separatorDownRef.current) return
+
+        const rect = document.body.getBoundingClientRect();
+        const newWidth = (1 - (e.clientX - rect.left) / rect.width) * 100;
+
+        if (newWidth >= 20 && newWidth <= 80) {
+            setPanelWidth(newWidth);
+        }
+    };
+
+    const handleSeparatorDown = () => {
+        separatorDownRef.current = true;
+    };
+
+    const handleSeparatorUp = () => {
+        separatorDownRef.current = false;
+    };
 
     const tabs = [
         { label: 'Config', content: 'Configure object and camera properties to define the scene layout.' },
         { label: 'Vertex', content: 'Use the vertex shader to manipulate geometry and control vertex positions.' },
-        { label: 'Fragment', content: 'Use the fragment shader to define pixel colors, lighting, and visual effects.' }
+        { label: 'Fragment', content: 'Use the fragment shader to define pixel colors, lighting, and visual effects.' },
+        { label: 'Images', content: 'You can add multiple images and config in proper ways.' }
     ]
 
     const handleFileUpload = (obj: { target: HTMLInputElement; }) => {
@@ -154,7 +184,12 @@ export default function Main() {
 
     return (
         <ThemeProvider theme={customTheme}>
-            <div className="main">
+            <div 
+                className="main"
+                style={{
+                    '--right-panel-width': `${panelWidth}%`,
+                } as React.CSSProperties}
+            >
                 <div className="canvas">
                     {/* <div className="d"></div> */}
                     <ModelCanvas url={fileURL} obj={objectProps} vertex={vertexProps} fragment={fragmentProps} />
@@ -175,6 +210,8 @@ export default function Main() {
                         />
                     </Button>
                 </div>
+
+                <div ref={separatorRef} className="separator-adjuster noselect"></div>
 
                 <div className="editor">
                     <div className="editor-tabs">
@@ -209,23 +246,48 @@ export default function Main() {
                                     </Collapse>
                                 </TabPanel>
                             ))}
-                            {/* { isHint && tabs.map((tab, i) => (
-                                <TabPanel key={i} value={tabValue} index={i}>
-                                    {tab.content}
-                                </TabPanel>
-                            ))} */}
                         </Box>
                     </div>
-                   <Editor
+                    {   tabValue === 3 && 
+                        <div className="texture-container">
+                            <div className="texture-buttons">
+                                <Button
+                                    component="label"
+                                    role={undefined}
+                                    variant="contained"
+                                    color="third"
+                                    tabIndex={-1}
+                                    startIcon={<CloudUpload />}
+                                >
+                                Upload Image
+                                <VisuallyHiddenInput
+                                    type="file"
+                                    accept=".png,.jpeg,.jpg"
+                                    onChange={handleFileUpload} 
+                                    multiple={false}
+                                />
+                                </Button>
+                            </div>
+                            <div className="texture-cards"></div>
+                        </div> 
+                    }
+                   { tabValue <= 2 && <Editor
                         value={
                             tabValue === 0 ? stringifyToDsl(objectProps) :
                             tabValue === 1 ? vertexProps :
-                            fragmentProps
+                            tabValue === 2 ? fragmentProps : null
                         }
-                        theme="vs-dark"
+                        theme="myTheme"
                         language={tabValue === 0 ? 'dsl' : 'glsl'}
                         onMount={(editor, monaco) => {
                             editorRef.current = editor
+                            editor.updateOptions({
+                                // lineNumbers: 'off', // если нужно совсем убрать
+                                lineNumbersMinChars: 1, // уменьшить ширину места под номера
+                                glyphMargin: false,     // отключить левый марджин
+                                fontSize: 14,
+                                minimap: { enabled: false }
+                            })
                             monaco.languages.register({ id: 'dsl' })
                                 monaco.languages.setMonarchTokensProvider('dsl', {
                                     tokenizer: {
@@ -266,9 +328,27 @@ export default function Main() {
                                 })
                                 monaco.languages.register({ id: 'glsl' })
                                 monaco.languages.setMonarchTokensProvider('glsl', language)
+                                monaco.editor.defineTheme('myTheme', {
+                                    base: 'vs-dark',
+                                    inherit: true,
+                                    rules: [
+                                        { token: 'comment', foreground: '888888' },
+                                        { token: 'keyword', foreground: 'FF007F', fontStyle: 'bold' },
+                                        { token: 'number', foreground: '00FFDD' },
+                                        { token: 'string', foreground: 'FFE377' },
+                                    ],
+                                    colors: {
+                                        'editor.background': '#161619ff',
+                                        'editor.lineHighlightBackground': '#2a2a3d',
+                                        'editorCursor.foreground': '#ffcc00',
+                                        'editorLineNumber.foreground': '#5c5c8a'
+                                    },
+                                })
+
+                                monaco.editor.setTheme('myTheme')
                         }
                     }
-                    />
+                    />}
                     <div className="editor-buttons" style={{ display: 'flex', gap: 12 }}>
                         <Button 
                             color="primary" 

@@ -199,9 +199,9 @@ export function ModelObject({
   const [shaderError, setShaderError] = useState<string | null>(null);
 
   const handleError = useCallback((err: ShaderError) => {
-    console.warn('[Shader Error]', err);
+    // console.warn('[Shader Error]', err);
     // setShaderError(`${err.type.toUpperCase()}: ${err.message}`);
-    console.error("My Shader Error")
+    // console.error("My Shader Error")
     shadeError(err)
   }, []);
 

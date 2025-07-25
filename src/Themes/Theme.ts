@@ -1,5 +1,5 @@
 import { createTheme } from '@mui/material/styles'
-import { blueGrey, amber, cyan } from '@mui/material/colors'
+import { blueGrey, amber, cyan, teal } from '@mui/material/colors'
 
 export const customTheme = createTheme({
   palette: {
@@ -10,6 +10,10 @@ export const customTheme = createTheme({
     },
     secondary: {
       main: amber[800],         // акцент
+      contrastText: '#ffffff',
+    },
+    third: {
+      main: teal[800],
       contrastText: '#ffffff',
     },
     background: {
