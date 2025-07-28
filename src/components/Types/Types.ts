@@ -47,3 +47,163 @@ export const defaultObjectProps: ObjectProps = {
     up: [0, 0, 0],
   }
 }
+
+export const TextureProps = {
+  "select" : {
+    "wrapS": [
+      "RepeatWrapping",
+      "ClampToEdgeWrapping",
+      "MirroredRepeatWrapping"
+    ],
+    "wrapT": [
+      "RepeatWrapping",
+      "ClampToEdgeWrapping",
+      "MirroredRepeatWrapping"
+    ],
+    "encoding": [
+      "LinearEncoding",
+      "sRGBEncoding",
+      "GammaEncoding",
+      "RGBEEncoding",
+      "RGBMEncoding",
+      "RGBDEncoding",
+      "LogLuvEncoding"
+    ],
+    "magFilter": [
+      "NearestFilter",
+      "LinearFilter"
+    ],
+    "minFilter": [
+      "NearestFilter",
+      "LinearFilter",
+      "NearestMipMapNearestFilter",
+      "NearestMipMapLinearFilter",
+      "LinearMipMapNearestFilter",
+      "LinearMipMapLinearFilter"
+    ],
+    "mapping": [
+      "UVMapping",
+      "CubeReflectionMapping",
+      "CubeRefractionMapping",
+      "EquirectangularReflectionMapping",
+      "EquirectangularRefractionMapping",
+      "SphericalReflectionMapping"
+    ],
+    "format": [
+      "RGBAFormat",
+      "RGBFormat",
+      "AlphaFormat",
+      "LuminanceFormat",
+      "LuminanceAlphaFormat",
+      "DepthFormat",
+      "DepthStencilFormat"
+    ],
+    "type": [
+      "UnsignedByteType",
+      "ByteType",
+      "ShortType",
+      "UnsignedShortType",
+      "IntType",
+      "UnsignedIntType",
+      "FloatType",
+      "HalfFloatType"
+    ]
+  },
+  "values" : {
+    "repeat": [1, 1], // Vector2, number x2 (suggested range: 0.1–10)
+    "offset": [0, 0], // Vector2, number x2 (range: -1 to 1)
+    "center": [0, 0], // Vector2, number x2 (default: 0)
+  },
+  "slider" : {
+    "rotation": 0, // (radians: 0 to 2π, degrees: 0° to 360°) /// Slider
+    "anisotropy": 1, // (integer: 1 to 16)
+  },
+  "switch" : {
+    "flipY": false, /// Switch
+  }
+}
+
+export const DefaultTextureProps = {
+  "wrapS": "RepeatWrapping",
+  "wrapT": "RepeatWrapping",
+  "encoding": "sRGBEncoding",
+  "magFilter": "NearestFilter",
+  "minFilter": "NearestFilter",
+  "mapping": "UVMapping",
+  "format": "RGBFormat",
+  "type": "UnsignedByteType",
+  "repeat": [1, 1],
+  "offset": [0, 0], 
+  "center": [0, 0],
+  "anisotropy": 1, 
+  "rotation": 0,
+  "flipY": false,
+}
+
+
+// export const TextureProps.old = {
+//   "wrapS": [
+//     "RepeatWrapping",
+//     "ClampToEdgeWrapping",
+//     "MirroredRepeatWrapping"
+//   ],
+//   "wrapT": [
+//     "RepeatWrapping",
+//     "ClampToEdgeWrapping",
+//     "MirroredRepeatWrapping"
+//   ],
+//   "repeat": [1, 1], // Vector2, number x2 (suggested range: 0.1–10)
+//   "offset": [0, 0], // Vector2, number x2 (range: -1 to 1)
+//   "center": [0, 0], // Vector2, number x2 (default: 0)
+//   "rotation": 0, // (radians: 0 to 2π, degrees: 0° to 360°) /// Slider
+//   "flipY": false, /// Checkbox
+//   "encoding": [
+//     "LinearEncoding",
+//     "sRGBEncoding",
+//     "GammaEncoding",
+//     "RGBEEncoding",
+//     "RGBMEncoding",
+//     "RGBDEncoding",
+//     "LogLuvEncoding"
+//   ],
+//   "anisotropy": 1, // (integer: 1 to 16)
+//   "magFilter": [
+//     "NearestFilter",
+//     "LinearFilter"
+//   ],
+//   "minFilter": [
+//     "NearestFilter",
+//     "LinearFilter",
+//     "NearestMipMapNearestFilter",
+//     "NearestMipMapLinearFilter",
+//     "LinearMipMapNearestFilter",
+//     "LinearMipMapLinearFilter"
+//   ],
+//   "mapping": [
+//     "UVMapping",
+//     "CubeReflectionMapping",
+//     "CubeRefractionMapping",
+//     "EquirectangularReflectionMapping",
+//     "EquirectangularRefractionMapping",
+//     "SphericalReflectionMapping"
+//   ],
+//   "format": [
+//     "RGBAFormat",
+//     "RGBFormat",
+//     "AlphaFormat",
+//     "LuminanceFormat",
+//     "LuminanceAlphaFormat",
+//     "DepthFormat",
+//     "DepthStencilFormat"
+//   ],
+//   "type": [
+//     "UnsignedByteType",
+//     "ByteType",
+//     "ShortType",
+//     "UnsignedShortType",
+//     "IntType",
+//     "UnsignedIntType",
+//     "FloatType",
+//     "HalfFloatType"
+//   ]
+// }
