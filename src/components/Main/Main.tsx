@@ -285,7 +285,9 @@ export default function Main() {
                             <div className="texture-cards">
                                 { textureUpload && textureNavigator == 'main' && textureUpload.map((element, i) => (
                                     <div key={i} className="img-card">
-                                        <img src={URL.createObjectURL(element)} alt="" />
+                                        <div className="img-wrapper">
+                                            <img src={URL.createObjectURL(element)} alt="" />
+                                        </div>
                                         <Button
                                             component="label"
                                             role={undefined}
@@ -493,70 +495,73 @@ export default function Main() {
                         }
                     }
                     />}
-                    <div className="editor-buttons" style={{ display: 'flex', gap: 12 }}>
-                        <Button 
-                            color="primary" 
-                            variant="outlined" 
-                            endIcon={<PlayCircleOutline />}
-                            onClick={() => {
-                                if (editorRef?.current) {
-                                    // setEditorText(DSLtoJSONString(editorRef.current.getValue()))
-                                    switch (tabValue) {
-                                        case 0:
-                                            setEditorText(DSLtoJSONString(editorRef.current.getValue()))
-                                            break;
-                                        case 1: 
-                                            setEditorText(editorRef.current.getValue())
-                                            break;
-                                        case 2: 
-                                            setEditorText(editorRef.current.getValue())
-                                            break;
-                                        default:
-                                            break;
+                    { tabValue !== 3 && 
+                        <div className="editor-menu">
+                            <div className="editor-buttons" style={{ display: 'flex', gap: 12 }}>
+                                <Button 
+                                    color="primary" 
+                                    variant="outlined" 
+                                    endIcon={<PlayCircleOutline />}
+                                    onClick={() => {
+                                        if (editorRef?.current) {
+                                            // setEditorText(DSLtoJSONString(editorRef.current.getValue()))
+                                            switch (tabValue) {
+                                                case 0:
+                                                    setEditorText(DSLtoJSONString(editorRef.current.getValue()))
+                                                    break;
+                                                case 1: 
+                                                    setEditorText(editorRef.current.getValue())
+                                                    break;
+                                                case 2: 
+                                                    setEditorText(editorRef.current.getValue())
+                                                    break;
+                                                default:
+                                                    break;
+                                            }
+                                        }
+                                    }}
+                                />
+                                <Button 
+                                    variant="contained" 
+                                    color="secondary" 
+                                    endIcon={<ChevronLeft />} 
+                                    onClick={() => {
+                                        updateObjectPath("object.rotation.direction", -1)
+                                    }}
+                                />
+                                <Button 
+                                    variant="contained" 
+                                    color="secondary" 
+                                    endIcon={<ChevronRight />} 
+                                    onClick={() => {
+                                        updateObjectPath("object.rotation.direction", 1)
+                                    }}
+                                />
+                                <Checkbox 
+                                    defaultChecked 
+                                    onChange={(e) => {
+                                        updateObjectPath("object.rotation.isRotating", e.target.checked)
+                                    }}
+                                />
+                                <Button variant="outlined" color="info" endIcon={<Info />} />
+                            </div>
+                            <Slider
+                                aria-label="Rotation speed"
+                                defaultValue={objectProps.object.rotation.speed}
+                                value={objectProps.object.rotation.speed}
+                                onChange={(_, value) => {
+                                    if (typeof value === 'number') {
+                                        updateObjectPath("object.rotation.speed", value)
                                     }
-                                }
-                            }}
-                        />
-                        <Button 
-                            variant="contained" 
-                            color="secondary" 
-                            endIcon={<ChevronLeft />} 
-                            onClick={() => {
-                                updateObjectPath("object.rotation.direction", -1)
-                            }}
-                        />
-                        <Button 
-                            variant="contained" 
-                            color="secondary" 
-                            endIcon={<ChevronRight />} 
-                            onClick={() => {
-                                updateObjectPath("object.rotation.direction", 1)
-                            }}
-                        />
-                        <Checkbox 
-                            defaultChecked 
-                            onChange={(e) => {
-                                updateObjectPath("object.rotation.isRotating", e.target.checked)
-                            }}
-                        />
-                        <Button variant="outlined" color="info" endIcon={<Info />}>
-                        </Button>
-                    </div>
-                    <Slider
-                        aria-label="Rotation speed"
-                        defaultValue={objectProps.object.rotation.speed}
-                        value={objectProps.object.rotation.speed}
-                        onChange={(_, value) => {
-                            if (typeof value === 'number') {
-                                updateObjectPath("object.rotation.speed", value)
-                            }
-                        }}
-                        step={0.001}
-                        marks
-                        min={0.001}
-                        max={0.01}
-                        valueLabelDisplay="auto"
-                    />
+                                }}
+                                step={0.001}
+                                marks
+                                min={0.001}
+                                max={0.01}
+                                valueLabelDisplay="auto"
+                            />
+                        </div>
+                    }
                 </div>
             </div>
         </ThemeProvider>
