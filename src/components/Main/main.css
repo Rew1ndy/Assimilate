@@ -31,6 +31,7 @@
   color: var(--dark-text-color);
   text-align: center;
   width: .5rem;
+  padding: 3px;
 
   writing-mode: vertical-rl;
   line-height: .28rem;
@@ -112,9 +113,9 @@
 }
 
 .img-card {
-  background-color: aliceblue;
+  background-color: var(--dark-button-color);
   padding: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
 
   display: flex;
   flex-direction: column;
