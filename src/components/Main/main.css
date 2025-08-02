@@ -101,6 +101,11 @@
   margin-bottom: .5rem;
 }
 
+.texture-buttons > label {
+  margin: 0 0.3rem;
+  height: 100%;
+}
+
 .texture-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(20px, 150px));
@@ -134,6 +139,21 @@
   object-fit: cover;
 }
 
+.img-ctrl {
+  padding: var(--padding-base-big);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.img-ctrl > div {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
 @media (width < 920px) {
   .main {

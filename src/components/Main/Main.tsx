@@ -33,6 +33,12 @@ interface TabPanelProps {
   index: number
 }
 
+type TextureProps = {
+  name: string;
+  props: typeof DefaultTextureProps;
+  file: File;
+};
+
 const TabPanel = ({ children, value, index }: TabPanelProps) => (
   value === index ? <Box sx={{ p: 2 }}>{children}</Box> : null
 )
@@ -56,7 +62,6 @@ const defaultProps: ObjectProps = {
 
 export default function Main() {
     const [fileUpload, setFileUpload] = useState<File | null>(null);
-    const [textureUpload, setTextureUpload] = useState<File[] | null>([]);
     const [fileURL, setFileURL] = useState<string>("");
     const [editorText, setEditorText] = useState<string | undefined>();
     const [objectProps, setObjectProps] = useState<ObjectProps>(defaultProps);
@@ -66,7 +71,7 @@ export default function Main() {
     const [isHint, setHint] = useState(true);
     const [panelWidth, setPanelWidth] = useState(30); // в процентах
     const [textureNavigator, setTextureNavigator] = useState("main");
-    const [textureProps, setTextureProps] = useState<typeof DefaultTextureProps>(DefaultTextureProps)
+    const [textureMap, setTextureMap] = useState<Record<string, TextureProps>>({});
 
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const separatorDownRef = useRef<boolean>(false);
@@ -111,7 +116,7 @@ export default function Main() {
     };
 
     const handleSwitchChange = (key, value) => {
-        setTextureProps((prev) => ({ ...prev, [key]: value }));
+        setTextureMap((prev) => ({ ...prev, [key]: value }));
     };
 
 
@@ -127,11 +132,33 @@ export default function Main() {
         setFileUpload(file);
     }
 
-    const handleTextureUpload = (obj: { target: HTMLInputElement; }) => {
-        const file = obj.target.files?.[0] || null;
-        setTextureUpload([...textureUpload, file]);
-        console.log(textureUpload);
-    }
+    // const handleTextureUpload = (obj: { target: HTMLInputElement; }) => {
+    //     const file = obj.target.files?.[0] || null;
+    //     setTextureUpload([...textureUpload, file]);
+    //     setTextureProps({...textureProps, { name: file.name, props: DefaultTextureProps }})
+    //     console.log(textureUpload);
+    // }
+
+    const handleTextureUpload = (obj: { target: HTMLInputElement }) => {
+        const file = obj.target.files?.[0];
+        if (!file) return;
+
+        const name = file.name;
+
+        const newTexture: TextureProps = {
+            name,
+            file,
+            props: DefaultTextureProps
+        };
+
+        setTextureMap(prev => ({
+            ...prev,
+            [name]: newTexture
+        }));
+
+        console.log('Texture added:', name);
+    };
+
 
     const updateObjectPath = (path: string, value: any) => {
         const keys: string[] = path.split('.')
@@ -265,6 +292,16 @@ export default function Main() {
                     { tabValue === 3 && 
                         <div className="texture-container">
                             <div className="texture-buttons">
+                                { textureNavigator != 'main' &&
+                                    <Button
+                                        component="label"
+                                        role={undefined}
+                                        variant="contained"
+                                        color="third"
+                                        onClick={() => setTextureNavigator(`main`)}
+                                        startIcon={<ArrowBackIos />}
+                                    />
+                                }
                                 <Button
                                     component="label"
                                     role={undefined}
@@ -282,139 +319,174 @@ export default function Main() {
                                 />
                                 </Button>
                             </div>
-                            <div className="texture-cards">
-                                { textureUpload && textureNavigator == 'main' && textureUpload.map((element, i) => (
-                                    <div key={i} className="img-card">
+                            {textureMap && textureNavigator === 'main' && (
+                                <div className="texture-cards">
+                                    {Object.entries(textureMap).map(([name, texture]) => (
+                                        <div key={name} className="img-card">
                                         <div className="img-wrapper">
-                                            <img src={URL.createObjectURL(element)} alt="" />
+                                            <img src={URL.createObjectURL(texture.file)} alt={name} />
                                         </div>
                                         <Button
                                             component="label"
                                             role={undefined}
                                             variant="contained"
                                             color="third"
-                                            onClick={() => setTextureNavigator(`${element.name}`)}
-                                            // startIcon={<CloudUpload />}
+                                            onClick={() => setTextureNavigator(name)}
                                         >
                                             Configue
                                         </Button>
-                                    </div>
-                                )) }
-                                { textureNavigator != 'main' && 
-                                    <div className="img-ctrl"> {/*Если мы перейдем на карточку*/}
-                                        <Button
-                                            component="label"
-                                            role={undefined}
-                                            variant="contained"
-                                            color="third"
-                                            onClick={() => setTextureNavigator(`main`)}
-                                            startIcon={<ArrowBackIos />}
-                                        />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {textureNavigator !== 'main' && textureMap[textureNavigator] && (
+                                <div className="img-ctrl">
+                                        {/* 🔽 Select-поля */}
                                         <div className="img-selectors">
-                                            {Object.entries(TextureProps.select).map(([key, options]) => (
-                                                <FormControl fullWidth key={key} margin="dense">
-                                                    <InputLabel id={`label-${key}`}>{key}</InputLabel>
-                                                    <Select
-                                                    labelId={`label-${key}`}
-                                                    id={`select-${key}`}
-                                                    value={textureProps[key]} // 👈 отслеживается выбранное значение
-                                                    label={key}
-                                                    onChange={(e) => handleSwitchChange(key, e.target.value)}
-                                                    >
-                                                    {options.map((option) => (
-                                                        <MenuItem key={option} value={option}>
-                                                        {option}
-                                                        </MenuItem>
-                                                    ))}
-                                                    </Select>
-                                                </FormControl>
-                                            ))}
-                                        </div>
-                                        <div className="img-values">
-                                            {Object.entries(TextureProps.values).map(([key, options]) => (
-                                                <Box
-                                                    key={key}
-                                                    component="form"
-                                                    sx={{ '& > :not(style)': { m: 1, width: '25ch' } }}
-                                                    noValidate
-                                                    autoComplete="off"
-                                                    >
-                                                    <TextField 
-                                                        id={`input-${key}-x`} 
-                                                        label={`${key}-x`} 
-                                                        variant="outlined" 
-                                                    />
-                                                    <TextField 
-                                                        id={`input-${key}-y`} 
-                                                        label={`${key}-y`} 
-                                                        variant="outlined" 
-                                                    />
-                                                </Box>
-                                            ))}
-                                        </div>
-                                        <div className="img-slider">
-                                            <div className="slider-info">
-                                                <p>{Object.keys(TextureProps.slider)[0]}</p>
-                                                <Slider
-                                                    aria-label={textureProps.rotation}
-                                                    defaultValue={0}
-                                                    value={textureProps.rotation}
-                                                    onChange={(_, value) => {
-                                                        setTextureProps((prev) => ({ ...prev, rotation: value }));
-                                                    }}
-                                                    step={1}
-                                                    marks
-                                                    min={0}
-                                                    max={360}
-                                                    valueLabelDisplay="auto"
-                                                />
-                                            </div>
-                                            <div className="slider-info">
-                                                <p>{Object.keys(TextureProps.slider)[1]}</p>
-                                                <Slider
-                                                    aria-label={textureProps.anisotropy}
-                                                    defaultValue={1}
-                                                    value={textureProps.anisotropy}
-                                                    onChange={(_, value) => {
-                                                        setTextureProps((prev) => ({ ...prev, anisotropy: value }));
-                                                    }}
-                                                    step={1}
-                                                    marks
-                                                    min={1}
-                                                    max={16}
-                                                    valueLabelDisplay="auto"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="img-switch">
-                                            <FormControl>
-                                                <FormControlLabel 
-                                                    control={<Switch />} 
-                                                    label={Object.keys(TextureProps.switch)[0]} 
-                                                    onChange={(event) => setTextureProps((prev) => ({ ...prev, anisotropy: event.target.checked }))}
-                                                />
+                                        {Object.entries(TextureProps.select).map(([key, options]) => (
+                                            <FormControl fullWidth key={key} margin="dense">
+                                            <InputLabel id={`label-${key}`}>{key}</InputLabel>
+                                            <Select
+                                                labelId={`label-${key}`}
+                                                id={`select-${key}`}
+                                                value={textureMap[textureNavigator].props[key]}
+                                                label={key}
+                                                onChange={(e) =>
+                                                setTextureMap((prev) => ({
+                                                    ...prev,
+                                                    [textureNavigator]: {
+                                                    ...prev[textureNavigator],
+                                                    props: {
+                                                        ...prev[textureNavigator].props,
+                                                        [key]: e.target.value
+                                                    }
+                                                    }
+                                                }))
+                                                }
+                                            >
+                                                {options.map((option) => (
+                                                <MenuItem key={option} value={option}>
+                                                    {option}
+                                                </MenuItem>
+                                                ))}
+                                            </Select>
                                             </FormControl>
+                                        ))}
                                         </div>
 
-                                        {/* {TextureProps.select.map(el => (
-                                            <FormControl fullWidth>
-                                                <InputLabel id="demo-simple-select-label">Age</InputLabel>
-                                                <Select
-                                                    labelId="demo-simple-select-label"
-                                                    id="demo-simple-select"
-                                                    value={age}
-                                                    label="Age"
-                                                    onChange={handleChange}
-                                                >
-                                                    <MenuItem value={10}>Ten</MenuItem>
-                                                    <MenuItem value={20}>Twenty</MenuItem>
-                                                    <MenuItem value={30}>Thirty</MenuItem>
-                                                </Select>
+                                        {/* 🧮 Vector2-поля */}
+                                        <div className="img-values">
+                                        {Object.entries(TextureProps.values).map(([key]) => (
+                                            <Box
+                                            key={key}
+                                            component="form"
+                                            sx={{ '& > :not(style)': { m: 1, width: '25ch' } }}
+                                            noValidate
+                                            autoComplete="off"
+                                            >
+                                            <TextField
+                                                label={`${key}-x`}
+                                                type="number"
+                                                value={textureMap[textureNavigator].props[key][0]}
+                                                onChange={(e) =>
+                                                setTextureMap((prev) => ({
+                                                    ...prev,
+                                                    [textureNavigator]: {
+                                                    ...prev[textureNavigator],
+                                                    props: {
+                                                        ...prev[textureNavigator].props,
+                                                        [key]: [
+                                                        Number(e.target.value),
+                                                        prev[textureNavigator].props[key][1]
+                                                        ]
+                                                    }
+                                                    }
+                                                }))
+                                                }
+                                            />
+                                            <TextField
+                                                label={`${key}-y`}
+                                                type="number"
+                                                value={textureMap[textureNavigator].props[key][1]}
+                                                onChange={(e) =>
+                                                setTextureMap((prev) => ({
+                                                    ...prev,
+                                                    [textureNavigator]: {
+                                                    ...prev[textureNavigator],
+                                                    props: {
+                                                        ...prev[textureNavigator].props,
+                                                        [key]: [
+                                                        prev[textureNavigator].props[key][0],
+                                                        Number(e.target.value)
+                                                        ]
+                                                    }
+                                                    }
+                                                }))
+                                                }
+                                            />
+                                            </Box>
+                                        ))}
+                                        </div>
+
+                                        {/* 🎚️ Слайдеры */}
+                                        <div className="img-slider">
+                                        {Object.entries(TextureProps.slider).map(([key]) => (
+                                            <div className="slider-info" key={key}>
+                                            <p>{key}</p>
+                                            <Slider
+                                                value={textureMap[textureNavigator].props[key]}
+                                                onChange={(_, value) =>
+                                                setTextureMap((prev) => ({
+                                                    ...prev,
+                                                    [textureNavigator]: {
+                                                    ...prev[textureNavigator],
+                                                    props: {
+                                                        ...prev[textureNavigator].props,
+                                                        [key]: value
+                                                    }
+                                                    }
+                                                }))
+                                                }
+                                                step={1}
+                                                marks
+                                                min={key === 'rotation' ? 0 : 1}
+                                                max={key === 'rotation' ? 360 : 16}
+                                                valueLabelDisplay="auto"
+                                            />
+                                            </div>
+                                        ))}
+                                        </div>
+
+                                        {/* 🔘 Switch */}
+                                        <div className="img-switch">
+                                        {Object.entries(TextureProps.switch).map(([key]) => (
+                                            <FormControl key={key}>
+                                            <FormControlLabel
+                                                control={
+                                                <Switch
+                                                    checked={textureMap[textureNavigator].props[key]}
+                                                    onChange={(e) =>
+                                                    setTextureMap((prev) => ({
+                                                        ...prev,
+                                                        [textureNavigator]: {
+                                                        ...prev[textureNavigator],
+                                                        props: {
+                                                            ...prev[textureNavigator].props,
+                                                            [key]: e.target.checked
+                                                        }
+                                                        }
+                                                    }))
+                                                    }
+                                                />
+                                                }
+                                                label={key}
+                                            />
                                             </FormControl>
-                                        ))} */}
+                                        ))}
+                                        </div>
                                     </div>
-                                }
-                            </div>
+                                )}
+
                         </div> 
                     }
                    { tabValue <= 2 && <Editor
