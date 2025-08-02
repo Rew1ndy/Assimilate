@@ -145,15 +145,34 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  color: var(--dark-text-color);
 
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+.img-ctrl h3 {
+  text-transform: uppercase;
+}
+
+.img-ctrl form {
+  border: 1px solid var(--dark-text-hint);
+  margin: 0.3rem 0;
+  border-radius: 4px;
 }
 
 .img-ctrl > div {
   width: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.img-slider {
+  margin: .3rem var(--padding-base-big);
+}
+
+.img-switch {
+  margin: .3rem .3rem;
 }
 
 @media (width < 920px) {

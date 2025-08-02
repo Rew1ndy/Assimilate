@@ -48,7 +48,19 @@ export const defaultObjectProps: ObjectProps = {
   }
 }
 
+export const TextureSlot = [
+    "map",  
+    "normalMap",
+    "roughnessMap",
+    "metalnessMap",
+    "aoMap",
+    "displacementMap",
+    "envMap",
+    "alphaMap"
+]
+
 export const TextureProps = {
+  "slot": TextureSlot,
   "select" : {
     "wrapS": [
       "RepeatWrapping",
@@ -130,7 +142,7 @@ export const DefaultTextureProps = {
   "magFilter": "NearestFilter",
   "minFilter": "NearestFilter",
   "mapping": "UVMapping",
-  "format": "RGBFormat",
+  "format": "RGBAFormat",
   "type": "UnsignedByteType",
   "repeat": [1, 1],
   "offset": [0, 0], 

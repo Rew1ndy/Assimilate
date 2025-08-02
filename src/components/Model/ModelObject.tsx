@@ -3,6 +3,8 @@ import { useLoader, useFrame } from '@react-three/fiber';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
+import type { TextureProps } from '../Main/Main';
+import { TextureSlot } from '../Types/Types';
 
 // Типы
 type ObjectProps = {
@@ -186,17 +188,55 @@ export function ModelObject({
   objectProps,
   vertexProps,
   fragmentProps,
-  shadeError
+  shadeError,
+  textures
 }: {
   url: string;
   objectProps: ObjectProps;
   vertexProps: string;
   fragmentProps: string;
   shadeError: (error: ShaderError) => void;
+  textures: Record<string, TextureProps>
 }) {
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
   const [shaderError, setShaderError] = useState<string | null>(null);
+  // const textureUniforms: Record<string, { value: THREE.Texture }> = {};
+  const [loadedTextures, setLoadedTextures] = useState<Record<string, THREE.Texture>>({});
+
+  useEffect(() => {
+    if (geometry) {
+      generateUVs(geometry);
+    }
+  }, [geometry]);
+
+
+  useEffect(() => {
+    const loadAllTextures = async () => {
+      const entries = await Promise.all(
+        Object.entries(textures).map(async ([name, tex]) => {
+          const texture = await createTexture(tex);
+          return [name, texture] as const;
+        })
+      );
+
+      setLoadedTextures(Object.fromEntries(entries));
+    };
+
+    loadAllTextures();
+  }, [textures]);
+
+
+  const textureUniforms = Object.entries(loadedTextures).reduce((acc, [name, tex]) => {
+    acc[`u_${textures[name].slot}`] = { value: tex };
+    return acc;
+  }, {} as Record<string, { value: THREE.Texture }>);
+
+  const uniforms = {
+    uTime: { value: 0 },
+    ...textureUniforms
+  };
+
 
   const handleError = useCallback((err: ShaderError) => {
     // console.warn('[Shader Error]', err);
@@ -205,9 +245,10 @@ export function ModelObject({
     shadeError(err)
   }, []);
 
-  const uniforms = {
-    uTime: { value: 0 },
-  };
+  // const uniforms = {
+  //   uTime: { value: 0 },
+  //   ...textureUniforms
+  // };
 
   useFrame(({ clock }) => {
     const mesh = meshRef.current;
@@ -241,4 +282,69 @@ export function ModelObject({
       </mesh>
     </>
   );
+}
+
+async function createTexture(textureProps: TextureProps): Promise<THREE.Texture> {
+  const url = URL.createObjectURL(textureProps.file);
+  const texture = await loadTextureAsync(url);
+
+  const props = textureProps.props;
+
+  texture.wrapS = THREE[props.wrapS];
+  texture.wrapT = THREE[props.wrapT];
+  texture.encoding = THREE[props.encoding];
+  texture.magFilter = THREE[props.magFilter];
+  texture.minFilter = THREE[props.minFilter];
+  texture.mapping = THREE[props.mapping];
+  texture.format = THREE[props.format];
+  texture.type = THREE[props.type];
+
+  texture.repeat.set(...props.repeat);
+  texture.offset.set(...props.offset);
+  texture.center.set(...props.center);
+  texture.rotation = props.rotation;
+  texture.anisotropy = props.anisotropy;
+  texture.flipY = props.flipY;
+
+  texture.needsUpdate = true;
+  return texture;
+}
+
+
+function loadTextureAsync(url: string): Promise<THREE.Texture> {
+  return new Promise((resolve, reject) => {
+    new THREE.TextureLoader().load(
+      url,
+      (texture) => resolve(texture),
+      undefined,
+      (err) => reject(err)
+    );
+  });
+}
+
+function generateUVs(geometry: THREE.BufferGeometry) {
+  geometry.computeBoundingBox();
+
+  const bbox = geometry.boundingBox!;
+  const size = new THREE.Vector3();
+  bbox.getSize(size);
+
+  const uvAttr = new Float32Array(geometry.attributes.position.count * 2);
+
+  for (let i = 0; i < geometry.attributes.position.count; i++) {
+    const x = geometry.attributes.position.getX(i);
+    const y = geometry.attributes.position.getY(i);
+    const z = geometry.attributes.position.getZ(i);
+
+    // const u = (x - bbox.min.x) / size.x;
+    // const v = (y - bbox.min.y) / size.y;
+    const u = (z - bbox.min.z) / size.z;
+    const v = (x - bbox.min.x) / size.x;
+
+
+    uvAttr[i * 2] = u;
+    uvAttr[i * 2 + 1] = v;
+  }
+
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uvAttr, 2));
 }

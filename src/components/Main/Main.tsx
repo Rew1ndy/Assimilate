@@ -4,7 +4,7 @@ import { styled, ThemeProvider } from '@mui/material/styles';
 import { Checkbox, Slider, Button, Box, Tabs, Tab, Collapse, FormControl, InputLabel, Select, MenuItem, TextField, Switch, FormControlLabel } from "@mui/material";
 import { CloudUpload, ChevronLeft, ChevronRight, Info, PlayCircleOutline, ArrowBackIos } from '@mui/icons-material'
 
-import { defaultObjectProps, DefaultTextureProps, TextureProps } from "../Types/Types";
+import { defaultObjectProps, DefaultTextureProps, TextureProps, TextureSlot } from "../Types/Types";
 import type { ObjectProps } from "../Types/Types";
 import { DSLtoJSONString, stringifyToDsl } from "./Syntax/DslFormatter";
 import { generateCompletionsFromTypes, language } from "./Syntax/Highlighter";
@@ -33,9 +33,10 @@ interface TabPanelProps {
   index: number
 }
 
-type TextureProps = {
+export type TextureProps = {
   name: string;
   props: typeof DefaultTextureProps;
+  slot: typeof TextureSlot;
   file: File;
 };
 
@@ -144,10 +145,12 @@ export default function Main() {
         if (!file) return;
 
         const name = file.name;
+        const slot = "map";
 
         const newTexture: TextureProps = {
             name,
             file,
+            slot,
             props: DefaultTextureProps
         };
 
@@ -233,7 +236,13 @@ export default function Main() {
             >
                 <div className="canvas">
                     {/* <div className="d"></div> */}
-                    <ModelCanvas url={fileURL} obj={objectProps} vertex={vertexProps} fragment={fragmentProps} />
+                    <ModelCanvas 
+                        url={fileURL} 
+                        obj={objectProps} 
+                        vertex={vertexProps} 
+                        fragment={fragmentProps} 
+                        textures={textureMap} 
+                    />
                     <Button
                             component="label"
                             role={undefined}
@@ -318,6 +327,12 @@ export default function Main() {
                                     multiple={false}
                                 />
                                 </Button>
+                                <Button 
+                                    variant="outlined" 
+                                    color="info" 
+                                    endIcon={<Info />} 
+                                    onClick={() => console.log(textureMap)}
+                                />
                             </div>
                             {textureMap && textureNavigator === 'main' && (
                                 <div className="texture-cards">
@@ -335,6 +350,38 @@ export default function Main() {
                                         >
                                             Configue
                                         </Button>
+                                        {/* <Button
+                                            component="label"
+                                            role={undefined}
+                                            variant="contained"
+                                            color="third"
+                                            // onClick={}
+                                        >
+                                            Assign
+                                        </Button> */}
+                                        <Select
+                                            labelId="label"
+                                            id="select"
+                                            value={textureMap[name].slot}
+                                            label="Slot"
+                                            onChange={(e) => {
+                                                const value = e.target.value as typeof TextureSlot;
+                                                setTextureMap((prev) => ({
+                                                ...prev,
+                                                [name]: {
+                                                    ...prev[name],
+                                                    slot: value
+                                                }
+                                                }));
+                                            }}
+                                            >
+                                            {TextureSlot.map((option) => (
+                                                <MenuItem key={option} value={option}>
+                                                {option}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+
                                         </div>
                                     ))}
                                 </div>
@@ -378,52 +425,53 @@ export default function Main() {
                                         <div className="img-values">
                                         {Object.entries(TextureProps.values).map(([key]) => (
                                             <Box
-                                            key={key}
-                                            component="form"
-                                            sx={{ '& > :not(style)': { m: 1, width: '25ch' } }}
-                                            noValidate
-                                            autoComplete="off"
+                                                key={key}
+                                                component="form"
+                                                sx={{ '& > :not(style)': { m: 1, width: '25ch' } }}
+                                                noValidate
+                                                autoComplete="off"
                                             >
-                                            <TextField
-                                                label={`${key}-x`}
-                                                type="number"
-                                                value={textureMap[textureNavigator].props[key][0]}
-                                                onChange={(e) =>
-                                                setTextureMap((prev) => ({
-                                                    ...prev,
-                                                    [textureNavigator]: {
-                                                    ...prev[textureNavigator],
-                                                    props: {
-                                                        ...prev[textureNavigator].props,
-                                                        [key]: [
-                                                        Number(e.target.value),
-                                                        prev[textureNavigator].props[key][1]
-                                                        ]
+                                                <h3>{key}</h3>
+                                                <TextField
+                                                    label={`${key}-x`}
+                                                    type="number"
+                                                    value={textureMap[textureNavigator].props[key][0]}
+                                                    onChange={(e) =>
+                                                    setTextureMap((prev) => ({
+                                                        ...prev,
+                                                        [textureNavigator]: {
+                                                        ...prev[textureNavigator],
+                                                        props: {
+                                                            ...prev[textureNavigator].props,
+                                                            [key]: [
+                                                            Number(e.target.value),
+                                                            prev[textureNavigator].props[key][1]
+                                                            ]
+                                                        }
+                                                        }
+                                                    }))
                                                     }
+                                                />
+                                                <TextField
+                                                    label={`${key}-y`}
+                                                    type="number"
+                                                    value={textureMap[textureNavigator].props[key][1]}
+                                                    onChange={(e) =>
+                                                    setTextureMap((prev) => ({
+                                                        ...prev,
+                                                        [textureNavigator]: {
+                                                        ...prev[textureNavigator],
+                                                        props: {
+                                                            ...prev[textureNavigator].props,
+                                                            [key]: [
+                                                            prev[textureNavigator].props[key][0],
+                                                            Number(e.target.value)
+                                                            ]
+                                                        }
+                                                        }
+                                                    }))
                                                     }
-                                                }))
-                                                }
-                                            />
-                                            <TextField
-                                                label={`${key}-y`}
-                                                type="number"
-                                                value={textureMap[textureNavigator].props[key][1]}
-                                                onChange={(e) =>
-                                                setTextureMap((prev) => ({
-                                                    ...prev,
-                                                    [textureNavigator]: {
-                                                    ...prev[textureNavigator],
-                                                    props: {
-                                                        ...prev[textureNavigator].props,
-                                                        [key]: [
-                                                        prev[textureNavigator].props[key][0],
-                                                        Number(e.target.value)
-                                                        ]
-                                                    }
-                                                    }
-                                                }))
-                                                }
-                                            />
+                                                />
                                             </Box>
                                         ))}
                                         </div>

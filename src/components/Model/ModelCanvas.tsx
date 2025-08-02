@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, AlertTitle } from '@mui/material'
 
 import "./modelCanvas.css";
+import type { TextureProps } from "../Main/Main"
 
 type CameraProps = ObjectProps['camera'];
 
@@ -40,7 +41,20 @@ function CameraSync({ props }: { props: CameraProps }) {
   return null
 }
 
-export default function ModelCanvas({url = "", obj, vertex, fragment}: {url: string, obj: ObjectProps, vertex: string, fragment: string}) {
+export default function ModelCanvas(
+  {
+    url = "", 
+    obj, 
+    vertex, 
+    fragment, 
+    textures
+  }: {
+    url: string, 
+    obj: ObjectProps, 
+    vertex: string, 
+    fragment: string, 
+    textures: Record<string, TextureProps>
+  }) {
   const [errorInfo, setErrorInfo] = useState<ShaderError | null>(null);
   const lastErrorKeyRef = useRef<string | null>(null);
 
@@ -62,6 +76,7 @@ export default function ModelCanvas({url = "", obj, vertex, fragment}: {url: str
     if (lastErrorKeyRef.current === key) return; // Уже показывали
     lastErrorKeyRef.current = key;
     setErrorInfo(err);
+    console.error(err);
   }, []);
 
   // const handleAnimationEnd = () => {
@@ -78,7 +93,14 @@ export default function ModelCanvas({url = "", obj, vertex, fragment}: {url: str
       <Canvas className="canvasWindow">
           <ambientLight />
           <pointLight position={[5, 5, 5]} />
-          {url && <ModelObject url={url} objectProps={obj} vertexProps={vertex} fragmentProps={fragment} shadeError={handleError} />}
+          {url && <ModelObject 
+                    url={url} 
+                    objectProps={obj} 
+                    vertexProps={vertex} 
+                    fragmentProps={fragment} 
+                    shadeError={handleError} 
+                    textures={textures}
+                  />}
           <OrbitControls />
           <CameraSync props={obj.camera} />
       </Canvas>
