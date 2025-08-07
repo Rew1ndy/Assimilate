@@ -23,12 +23,11 @@ export type ShaderError = {
   valid: boolean;
 };
 
-// Валидация шейдеров через WebGL
+// Валидация шейдеров
 function validateShaderInWebGL(vertex: string, fragment: string) {
   const canvas = document.createElement('canvas');
   const gl: any = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
   if (!gl) return { valid: false, type: 'webgl', log: 'WebGL not available' } as const;
-
   const program = gl.createProgram();
   if (!program) return { valid: false, type: 'webgl', log: 'Failed to create program' } as const;
 
@@ -40,7 +39,6 @@ function validateShaderInWebGL(vertex: string, fragment: string) {
     attribute vec2 uv;
     ${vertex}
   `;
-
   const patchedFragment = `
     precision mediump float;
     ${fragment}
@@ -105,7 +103,7 @@ function parseGlslError(log: string): string {
   return message || 'Shader error';
 }
 
-// SafeShaderMaterial
+// === SafeShaderMaterial ===
 const SafeShaderMaterial = ({
   vertex,
   fragment,
@@ -122,20 +120,18 @@ const SafeShaderMaterial = ({
   const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 
   const uniforms = useMemo(() => {
-    console.log(textures.u_diffuse)
     const unifs: Record<string, any> = {
       uTime: { value: 0 },
     };
-
     Object.entries(textures).forEach(([uniformName, texture]) => {
       unifs[uniformName] = { value: texture };
     });
-
     return unifs;
   }, [textures]);
 
   useEffect(() => {
     const validation = validateShaderInWebGL(vertex, fragment);
+
     let newMaterial: THREE.ShaderMaterial;
 
     if (!validation.valid) {
@@ -171,11 +167,12 @@ const SafeShaderMaterial = ({
     }
 
     setMaterial(newMaterial);
+    const oldMaterial = materialRef.current;
     materialRef.current = newMaterial;
 
     return () => {
-      if (materialRef.current && materialRef.current !== newMaterial) {
-        materialRef.current.dispose();
+      if (oldMaterial && oldMaterial !== newMaterial) {
+        oldMaterial.dispose();
       }
     };
   }, [vertex, fragment, uniforms, onError]);
@@ -183,8 +180,8 @@ const SafeShaderMaterial = ({
   return material ? <primitive object={material} attach="material" /> : null;
 };
 
-// ModelObject
-export function ModelObject({
+// === ModelObject ===
+export function ModelObject({ // Пофиксить баг с тайлингом. Сейчас все таботает не на юв, а на изменении геометрии - так и оставить.
   url,
   objectProps,
   vertexProps,
@@ -202,7 +199,7 @@ export function ModelObject({
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
   const [loadedTextures, setLoadedTextures] = useState<Record<string, THREE.Texture>>({});
-  const prevTexturesRef = useRef<Record<string, TextureProps>>({});
+  const prevTexturePropsRef = useRef<Record<string, TextureProps>>({});
 
   const handleError = useCallback((err: ShaderError) => {
     shadeError(err);
@@ -215,66 +212,74 @@ export function ModelObject({
     }
   }, [geometry]);
 
-  // Загрузка и пересоздание текстур
   useEffect(() => {
-    const loadTextures = async () => {
-      // Очистка старых текстур
-      Object.values(loadedTextures).forEach((tex) => tex.dispose());
+  Object.entries(texturePropsMap).forEach(([key, texProps]) => {
+    if (geometry) {
+      applyTextureTransform(geometry, texProps.props);
+    }
+  });
+}, [texturePropsMap, geometry]);
 
+  // Загрузка и обновление текстур
+  useEffect(() => {
+    const current = { ...texturePropsMap };
+    const prev = prevTexturePropsRef.current;
+
+    // Определяем, изменились ли текстуры (включая props)
+    const hasChanged = () => {
+      if (Object.keys(current).length !== Object.keys(prev).length) return true;
+      for (const key in current) {
+        if (!(key in prev)) return true;
+        const a = current[key];
+        const b = prev[key];
+        if (
+          a.slot !== b.slot ||
+          a.props.wrapS !== b.props.wrapS ||
+          a.props.wrapT !== b.props.wrapT ||
+          a.props.flipY !== b.props.flipY ||
+          a.props.repeat[0] !== b.props.repeat[0] ||
+          a.props.repeat[1] !== b.props.repeat[1] ||
+          a.props.offset[0] !== b.props.offset[0] ||
+          a.props.offset[1] !== b.props.offset[1] ||
+          a.props.center[0] !== b.props.center[0] ||
+          a.props.center[1] !== b.props.center[1] ||
+          a.props.rotation !== b.props.rotation ||
+          a.props.anisotropy !== b.props.anisotropy
+        ) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (!hasChanged()) return;
+
+    // Очистка старых текстур
+    Object.values(loadedTextures).forEach((tex) => tex.dispose());
+
+    const loadTextures = async () => {
       try {
         const entries = await Promise.all(
-          Object.entries(texturePropsMap).map(async ([key, texProps]) => {
+          Object.entries(current).map(async ([key, texProps]) => {
             const texture = await createTextureFromTextureProps(texProps);
             return [`u_${texProps.slot}`, texture] as const;
           })
         );
-        setLoadedTextures(Object.fromEntries(entries));
+        const newTextures = Object.fromEntries(entries);
+        setLoadedTextures(newTextures);
+        prevTexturePropsRef.current = { ...current };
       } catch (err) {
         console.error('Texture loading failed', err);
       }
     };
 
-    // Проверяем, изменились ли текстуры
-    const texturesChanged = JSON.stringify(texturePropsMap) !== JSON.stringify(prevTexturesRef.current);
-    if (texturesChanged || Object.keys(loadedTextures).length === 0) {
-      loadTextures();
-      prevTexturesRef.current = { ...texturePropsMap }; // Глубокая копия
-    }
+    loadTextures();
 
     // Очистка при размонтировании
     return () => {
       Object.values(loadedTextures).forEach((tex) => tex.dispose());
     };
   }, [texturePropsMap]);
-
-  // Синхронизация параметров текстур
-  useEffect(() => {
-    Object.entries(texturePropsMap).forEach(([key, texProps]) => {
-      const texture = loadedTextures[`u_${texProps.slot}`];
-      if (!texture) return;
-
-      const p = texProps.props;
-      texture.wrapS = getConstant(p.wrapS);
-      texture.wrapT = getConstant(p.wrapT);
-      texture.magFilter = getConstant(p.magFilter);
-      texture.minFilter = getConstant(p.minFilter);
-      texture.mapping = getConstant(p.mapping);
-      texture.format = getConstant(p.format);
-      texture.type = getConstant(p.type);
-      texture.encoding = getConstant(p.encoding);
-      texture.flipY = p.flipY;
-      texture.anisotropy = p.anisotropy;
-
-      texture.repeat.set(p.repeat[0], p.repeat[1]);
-      texture.offset.set(p.offset[0], p.offset[1]);
-      texture.center.set(p.center[0], p.center[1]);
-      texture.rotation = p.rotation;
-
-      texture.matrixAutoUpdate = true;
-      texture.updateMatrix();
-      texture.needsUpdate = true;
-    });
-  }, [texturePropsMap, loadedTextures]);
 
   // Анимация и uTime
   useFrame(({ clock }) => {
@@ -302,6 +307,42 @@ export function ModelObject({
       />
     </mesh>
   );
+}
+
+// После загрузки текстуры и геометрии
+function applyTextureTransform(geometry: THREE.BufferGeometry, props: any) {
+  const uv = geometry.attributes.uv;
+  const repeat = props.repeat;
+  const offset = props.offset;
+  const rotation = props.rotation;
+  const center = props.center;
+
+  for (let i = 0; i < uv.count; i++) {
+    let u = uv.getX(i);
+    let v = uv.getY(i);
+
+    // Центрируем
+    u -= center[0];
+    v -= center[1];
+
+    // Поворот (вокруг центра)
+    const cos = Math.cos(rotation);
+    const sin = Math.sin(rotation);
+    const u2 = u * cos - v * sin;
+    const v2 = u * sin + v * cos;
+    u = u2;
+    v = v2;
+
+    // Масштаб и смещение
+    u = u * repeat[0] + offset[0];
+    v = v * repeat[1] + offset[1];
+
+    console.log(u, v, i);
+
+    uv.setXY(i, u, v);
+  }
+
+  uv.needsUpdate = true;
 }
 
 // Конвертирует строку в THREE-константу
@@ -345,12 +386,13 @@ const getConstant = (value: string): number => {
     FloatType: THREE.FloatType,
     HalfFloatType: THREE.HalfFloatType,
   };
-
-  return THREE_CONSTANTS[value] ?? THREE.UVMapping; // Фallback на UVMapping
+  return THREE_CONSTANTS[value] ?? THREE.RepeatWrapping;
 };
 
-// Загружает текстуру из File
-const createTextureFromTextureProps = (textureProps: TextureProps): Promise<THREE.Texture> => {
+// Загружает текстуру из File с применением props
+const createTextureFromTextureProps = (
+  textureProps: TextureProps
+): Promise<THREE.Texture> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -361,25 +403,24 @@ const createTextureFromTextureProps = (textureProps: TextureProps): Promise<THRE
         (texture: THREE.Texture) => {
           const p = textureProps.props;
 
-          // Применяем параметры из props
+          // Применяем параметры
           texture.wrapS = getConstant(p.wrapS);
           texture.wrapT = getConstant(p.wrapT);
           texture.magFilter = getConstant(p.magFilter);
           texture.minFilter = getConstant(p.minFilter);
-          texture.mapping = getConstant(p.mapping);
-          texture.format = getConstant(p.format);
-          texture.type = getConstant(p.type);
           texture.encoding = getConstant(p.encoding);
           texture.flipY = p.flipY;
           texture.anisotropy = p.anisotropy;
 
+          // UV transform
           texture.repeat.set(p.repeat[0], p.repeat[1]);
           texture.offset.set(p.offset[0], p.offset[1]);
           texture.center.set(p.center[0], p.center[1]);
           texture.rotation = p.rotation;
 
+          // 🔥 Обязательно:
           texture.matrixAutoUpdate = true;
-          texture.updateMatrix();
+          texture.updateMatrix(); // ← пересчитать матрицу
           texture.needsUpdate = true;
 
           URL.revokeObjectURL(blobUrl);
@@ -392,11 +433,10 @@ const createTextureFromTextureProps = (textureProps: TextureProps): Promise<THRE
         }
       );
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(textureProps.file);
   });
 };
-
 // Генерация UV
 function generateUVs(geometry: THREE.BufferGeometry) {
   if (geometry.attributes.uv) {
@@ -411,10 +451,9 @@ function generateUVs(geometry: THREE.BufferGeometry) {
   const uvAttr = new Float32Array(geometry.attributes.position.count * 2);
   for (let i = 0; i < geometry.attributes.position.count; i++) {
     const x = geometry.attributes.position.getX(i);
-    const y = geometry.attributes.position.getY(i);
     const z = geometry.attributes.position.getZ(i);
-    const u = (x - bbox.min.x) / size.x;
-    const v = (z - bbox.min.z) / size.z;
+    const u = (z - bbox.min.z) / size.z;
+    const v = (x - bbox.min.x) / size.x;
     uvAttr[i * 2] = u;
     uvAttr[i * 2 + 1] = v;
   }

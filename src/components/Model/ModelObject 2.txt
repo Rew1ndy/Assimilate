@@ -1,3 +1,4 @@
+// ModelObject.tsx
 import { useLoader, useFrame } from '@react-three/fiber';
 // @ts-ignore
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
@@ -5,7 +6,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import type { TextureProps } from '../Main/Main';
 import { Vector2 } from 'three';
-import { uvTransformFunctions } from './Shaders';
 
 // Типы
 type ObjectProps = {
@@ -35,7 +35,8 @@ function validateShaderInWebGL(vertex: string, fragment: string) {
   const program = gl.createProgram();
   if (!program) return { valid: false, type: 'webgl', log: 'Failed to create program' } as const;
 
-  // Подменяем шейдеры, добавляя объявления
+  // === Подменяем шейдеры, добавляя объявления ===
+
   const patchedVertex = `
     precision mediump float;
     uniform mat4 projectionMatrix;
@@ -134,6 +135,7 @@ const SafeShaderMaterial = ({
     const validation = validateShaderInWebGL(vertex, fragment);
 
     if (!validation.valid) {
+      // Передаем сообщение об ошибке
       const err: ShaderError = {
         type: validation.type || 'webgl',
         message: parseGlslError(validation.log),
@@ -142,6 +144,7 @@ const SafeShaderMaterial = ({
       };
       onError(err);
 
+      // Откат на последний валидный
       const fallback = new THREE.ShaderMaterial({
         vertexShader: lastValidRef.current.vertex,
         fragmentShader: lastValidRef.current.fragment,
@@ -150,27 +153,30 @@ const SafeShaderMaterial = ({
       setMaterial(fallback);
       return;
     } else {
+      // Передаем сообщение об успешной компиляции
       const err: ShaderError = {
-        type: 'success',
-        message: 'Shader compiled successful',
-        raw: validation.log,
-        valid: true
+          type: 'success',
+          message: 'Shader compiled successful',
+          raw: validation.log,
+          valid: true
       };
       onError(err)
     }
 
+    // Сохраняем как валидный
     lastValidRef.current = { vertex, fragment };
 
     const newMaterial = new THREE.ShaderMaterial({
       vertexShader: vertex,
       fragmentShader: fragment,
-      uniforms: {
-        ...uniforms,
-      }
+      uniforms: {...uniforms}
     });
+
+    console.log("newMaterial: ",newMaterial)
 
     setMaterial(newMaterial);
 
+    // Очистка старого материала
     return () => {
       if (material && material !== newMaterial) {
         material.dispose();
@@ -199,6 +205,8 @@ export function ModelObject({
 }) {
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
+  // const [shaderError, setShaderError] = useState<string | null>(null);
+  // const textureUniforms: Record<string, { value: THREE.Texture }> = {};
   const [loadedTextures, setLoadedTextures] = useState<Record<string, THREE.Texture>>({});
 
   useEffect(() => {
@@ -207,47 +215,40 @@ export function ModelObject({
     }
   }, [geometry]);
 
+
   useEffect(() => {
-    if(textures) {
-      const loadAllTextures = async () => {
-        const entries = await Promise.all(
-          Object.entries(textures).map(async ([name, tex]) => {
-            const texture = await createTexture(tex);
-            return [name, texture] as const;
-          })
-        );
-  
-        setLoadedTextures(Object.fromEntries(entries));
-      };
-  
-      loadAllTextures();
-    }
+    const loadAllTextures = async () => {
+      const entries = await Promise.all(
+        Object.entries(textures).map(async ([name, tex]) => {
+          const texture = await createTexture(tex);
+          return [name, texture] as const;
+        })
+      );
+
+      setLoadedTextures(Object.fromEntries(entries));
+    };
+
+    loadAllTextures();
   }, [textures]);
+
 
   const textureUniforms = Object.entries(loadedTextures).reduce((acc, [name, tex]) => {
     acc[`u_${textures[name].slot}`] = { value: tex };
     return acc;
   }, {} as Record<string, { value: THREE.Texture }>);
 
+  console.log("Uniforms: ",textureUniforms)
+
   const uniforms = {
     uTime: { value: 0 },
     ...textureUniforms,
   };
 
-  Object.entries(textures).forEach(([name, tex]) => {
-    const slot = tex.slot;
-    const props = tex.props;
-
-    uniforms[`u_${slot}_repeat`] = { value: new THREE.Vector2(...props.repeat) };
-    uniforms[`u_${slot}_offset`] = { value: new THREE.Vector2(...props.offset) };
-    uniforms[`u_${slot}_center`] = { value: new THREE.Vector2(...props.center) };
-    uniforms[`u_${slot}_rotation`] = { value: props.rotation };
-  });
 
   const handleError = useCallback((err: ShaderError) => {
-    shadeError(err);
+    shadeError(err)
   }, []);
-
+  
   useFrame(({ clock }) => {
     const mesh = meshRef.current;
     if (mesh && objectProps?.object.rotation.isRotating) {
@@ -255,6 +256,7 @@ export function ModelObject({
       mesh.rotation[axis] += speed * direction;
     }
 
+    // Обновляем uTime
     if (mesh?.material && 'uniforms' in mesh.material) {
       const mat = mesh.material as THREE.ShaderMaterial;
       if (mat.uniforms.uTime) {
@@ -269,7 +271,7 @@ export function ModelObject({
         <SafeShaderMaterial
           textures={textures}
           vertex={vertexProps}
-          fragment={fragmentProps} // Используем fragmentProps напрямую
+          fragment={fragmentProps}
           uniforms={uniforms}
           onError={handleError}
         />
@@ -306,6 +308,7 @@ async function createTexture(textureProps: TextureProps): Promise<THREE.Texture>
   return texture;
 }
 
+
 function loadTextureAsync(url: string): Promise<THREE.Texture> {
   return new Promise((resolve, reject) => {
     new THREE.TextureLoader().load(
@@ -328,39 +331,18 @@ function generateUVs(geometry: THREE.BufferGeometry) {
 
   for (let i = 0; i < geometry.attributes.position.count; i++) {
     const x = geometry.attributes.position.getX(i);
+    // const y = geometry.attributes.position.getY(i);
     const z = geometry.attributes.position.getZ(i);
 
+    // const u = (x - bbox.min.x) / size.x;
+    // const v = (y - bbox.min.y) / size.y;
     const u = (z - bbox.min.z) / size.z;
     const v = (x - bbox.min.x) / size.x;
+
 
     uvAttr[i * 2] = u;
     uvAttr[i * 2 + 1] = v;
   }
 
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvAttr, 2));
-}
-
-
-function useImportType(uniforms: any) { // Добавить пользователю автоимпорт форм прямо на редактор кода, чат лучше не использовать
-  if  (uniforms) {
-    const keys = Object.keys(uniforms).map(value => value?.match(/u_[^_]+.+/) ? value : null).filter(value => value !== null);
-    // const keys = Object.keys(uniforms).map(value => value.startsWith('u_') ? value : null);
-    // const exp = keys.map(value => value?.match(/u_.+_.+/) ? value : null)
-    // console.log(keys)
-    const values = keys.map(value => uniforms[value]?.value).filter(value => value !== undefined)
-    // console.log(values.map(value => value.constructor.name))
-    const final = values.map((value, index) => {
-      switch (value.constructor.name) {
-        case '_Texture':
-          return `uniform sampler2D ${keys[index]};`
-        case '_Vector2':
-          return `uniform vec2 ${keys[index]};`
-        default:
-          return `uniform float ${keys[index]};`
-      }
-    })
-    console.log("Final import: ", final)
-    return final || ''
-  }
-  return ''
 }

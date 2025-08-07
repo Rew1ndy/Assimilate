@@ -62,10 +62,15 @@ export default function ModelCanvas(
     if (errorInfo) {
       const key = `${errorInfo.type}:${errorInfo.message}`;
       lastErrorKeyRef.current = key;
+      let timeToExpire = 10000;
+
+      if (errorInfo.type === 'success') {
+        timeToExpire = 3000;
+      }
 
       const timer = setTimeout(() => {
-        setErrorInfo(null);
-      }, 3000);
+          setErrorInfo(null);
+      }, timeToExpire);
 
       return () => clearTimeout(timer);
     }
@@ -78,12 +83,6 @@ export default function ModelCanvas(
     setErrorInfo(err);
     console.error(err);
   }, []);
-
-  // const handleAnimationEnd = () => {
-  //   // if (!isVisible) {
-  //     setErrorInfo(null); // Полностью удаляем данные после анимации
-  //   // }
-  // };
 
   // Возможно добавить плавное скрытие уведомления
   // Авто скрытие успешной компиляции, и закрытие + долгий таймер на ошибки

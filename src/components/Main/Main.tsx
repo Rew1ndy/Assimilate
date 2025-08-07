@@ -11,7 +11,7 @@ import { generateCompletionsFromTypes, language } from "./Syntax/Highlighter";
 import * as monaco from 'monaco-editor'
 import { customTheme } from "../../Themes/Theme";
 import ModelCanvas from "../Model/ModelCanvas";
-import { fragmentShader, vertexShader } from "../Model/Shaders";
+import { defaultFragmentShader, defaultVertexShader, fragmentShader, vertexShader, uvTransformFunctions } from "../Model/Shaders";
 
 import "./main.css";
 
@@ -32,13 +32,6 @@ interface TabPanelProps {
   value: number
   index: number
 }
-
-export type TextureProps = {
-  name: string;
-  props: typeof DefaultTextureProps;
-  slot: typeof TextureSlot;
-  file: File;
-};
 
 const TabPanel = ({ children, value, index }: TabPanelProps) => (
   value === index ? <Box sx={{ p: 2 }}>{children}</Box> : null
@@ -66,13 +59,13 @@ export default function Main() {
     const [fileURL, setFileURL] = useState<string>("");
     const [editorText, setEditorText] = useState<string | undefined>();
     const [objectProps, setObjectProps] = useState<ObjectProps>(defaultProps);
-    const [vertexProps, setVertexProps] = useState<string>(vertexShader);
-    const [fragmentProps, setFragmentProps] = useState<string>(fragmentShader);
+    const [vertexProps, setVertexProps] = useState<string>(defaultVertexShader);
+    const [fragmentProps, setFragmentProps] = useState<string>(defaultFragmentShader);
     const [tabValue, setTabValue] = useState(0);
     const [isHint, setHint] = useState(true);
     const [panelWidth, setPanelWidth] = useState(30); // в процентах
     const [textureNavigator, setTextureNavigator] = useState("main");
-    const [textureMap, setTextureMap] = useState<Record<string, TextureProps>>({});
+    const [textureMap, setTextureMap] = useState<Record<string, TextureProps | null>>({});
 
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const separatorDownRef = useRef<boolean>(false);
@@ -95,7 +88,7 @@ export default function Main() {
             document.removeEventListener('mousemove', onMove);
             document.removeEventListener('mouseup', onUp);
         };
-    }, []); // Все обработчики стабильны
+    }, []);
     
     const handleSeparatorMove = (e: MouseEvent) => {
         if (!separatorDownRef.current) return
@@ -116,10 +109,10 @@ export default function Main() {
         separatorDownRef.current = false;
     };
 
-    const handleSwitchChange = (key, value) => {
-        setTextureMap((prev) => ({ ...prev, [key]: value }));
-    };
-
+    function extractUserCode(shaderText: string): string | null {
+        const match = shaderText.match(/\/\/ User cfg\s*([\s\S]*?)\s*(?=\/\/|$)/);
+        return match ? match[1].trim() : shaderText.trim();
+    }
 
     const tabs = [
         { label: 'Config', content: 'Configure object and camera properties to define the scene layout.' },
@@ -132,13 +125,6 @@ export default function Main() {
         const file = obj.target.files?.[0] || null;
         setFileUpload(file);
     }
-
-    // const handleTextureUpload = (obj: { target: HTMLInputElement; }) => {
-    //     const file = obj.target.files?.[0] || null;
-    //     setTextureUpload([...textureUpload, file]);
-    //     setTextureProps({...textureProps, { name: file.name, props: DefaultTextureProps }})
-    //     console.log(textureUpload);
-    // }
 
     const handleTextureUpload = (obj: { target: HTMLInputElement }) => {
         const file = obj.target.files?.[0];
@@ -158,10 +144,7 @@ export default function Main() {
             ...prev,
             [name]: newTexture
         }));
-
-        console.log('Texture added:', name);
     };
-
 
     const updateObjectPath = (path: string, value: any) => {
         const keys: string[] = path.split('.')
@@ -195,7 +178,6 @@ export default function Main() {
     }
 
     useEffect(() => {
-        console.log(fileUpload);
         if (fileUpload) {
             setFileURL(URL.createObjectURL(fileUpload));
         }
@@ -203,7 +185,6 @@ export default function Main() {
 
     useEffect(() => {
         if (editorText) {
-            // console.log(editorText)
             try {
                 switch (tabValue) {
                     case 0:
@@ -215,7 +196,7 @@ export default function Main() {
                         setVertexProps(editorText);
                         break;
                     case 2: 
-                        setFragmentProps(editorText);
+                        setFragmentProps(fragmentShader(null, editorText)); // Автоматически добавляем автогенерируемый код
                         break;
                     default:
                         break;
@@ -235,7 +216,6 @@ export default function Main() {
                 } as React.CSSProperties}
             >
                 <div className="canvas">
-                    {/* <div className="d"></div> */}
                     <ModelCanvas 
                         url={fileURL} 
                         obj={objectProps} 
@@ -350,22 +330,13 @@ export default function Main() {
                                         >
                                             Configue
                                         </Button>
-                                        {/* <Button
-                                            component="label"
-                                            role={undefined}
-                                            variant="contained"
-                                            color="third"
-                                            // onClick={}
-                                        >
-                                            Assign
-                                        </Button> */}
                                         <Select
                                             labelId="label"
                                             id="select"
                                             value={textureMap[name].slot}
                                             label="Slot"
                                             onChange={(e) => {
-                                                const value = e.target.value as typeof TextureSlot;
+                                                const value = e.target.value;
                                                 setTextureMap((prev) => ({
                                                 ...prev,
                                                 [name]: {
@@ -381,14 +352,12 @@ export default function Main() {
                                                 </MenuItem>
                                             ))}
                                         </Select>
-
                                         </div>
                                     ))}
                                 </div>
                             )}
                             {textureNavigator !== 'main' && textureMap[textureNavigator] && (
                                 <div className="img-ctrl">
-                                        {/* 🔽 Select-поля */}
                                         <div className="img-selectors">
                                         {Object.entries(TextureProps.select).map(([key, options]) => (
                                             <FormControl fullWidth key={key} margin="dense">
@@ -396,7 +365,7 @@ export default function Main() {
                                             <Select
                                                 labelId={`label-${key}`}
                                                 id={`select-${key}`}
-                                                value={textureMap[textureNavigator].props[key]}
+                                                value={textureMap[textureNavigator].props[key as TexturePropKey]}
                                                 label={key}
                                                 onChange={(e) =>
                                                 setTextureMap((prev) => ({
@@ -420,8 +389,6 @@ export default function Main() {
                                             </FormControl>
                                         ))}
                                         </div>
-
-                                        {/* 🧮 Vector2-поля */}
                                         <div className="img-values">
                                         {Object.entries(TextureProps.values).map(([key]) => (
                                             <Box
@@ -475,8 +442,6 @@ export default function Main() {
                                             </Box>
                                         ))}
                                         </div>
-
-                                        {/* 🎚️ Слайдеры */}
                                         <div className="img-slider">
                                         {Object.entries(TextureProps.slider).map(([key]) => (
                                             <div className="slider-info" key={key}>
@@ -504,8 +469,6 @@ export default function Main() {
                                             </div>
                                         ))}
                                         </div>
-
-                                        {/* 🔘 Switch */}
                                         <div className="img-switch">
                                         {Object.entries(TextureProps.switch).map(([key]) => (
                                             <FormControl key={key}>
@@ -534,84 +497,66 @@ export default function Main() {
                                         </div>
                                     </div>
                                 )}
-
                         </div> 
                     }
                    { tabValue <= 2 && <Editor
                         value={
                             tabValue === 0 ? stringifyToDsl(objectProps) :
                             tabValue === 1 ? vertexProps :
-                            tabValue === 2 ? fragmentProps : null
+                            tabValue === 2 ? extractUserCode(fragmentProps) : undefined
                         }
                         theme="myTheme"
                         language={tabValue === 0 ? 'dsl' : 'glsl'}
                         onMount={(editor, monaco) => {
                             editorRef.current = editor
                             editor.updateOptions({
-                                // lineNumbers: 'off', // если нужно совсем убрать
-                                lineNumbersMinChars: 1, // уменьшить ширину места под номера
-                                glyphMargin: false,     // отключить левый марджин
+                                lineNumbersMinChars: 1,
+                                glyphMargin: false,
                                 fontSize: 14,
                                 minimap: { enabled: false }
                             })
                             monaco.languages.register({ id: 'dsl' })
-                                monaco.languages.setMonarchTokensProvider('dsl', {
-                                    tokenizer: {
-                                        root: [
-                                        // Комментарии
+                            monaco.languages.setMonarchTokensProvider('dsl', {
+                                tokenizer: {
+                                    root: [
                                         [/^\s*#.*$/, 'comment'],
-
-                                        // Заголовки секций: object.rotation:
                                         [/^[\w.]+:/, 'type.identifier'],
-
-                                        // Ключ = значение
                                         [/\b\w+\b(?=\s*=)/, 'variable.name'],
                                         [/=/, 'operator'],
-
-                                        // Строки
                                         [/"[^"]*"/, 'string'],
-
-                                        // Числа
                                         [/\b\d+(\.\d+)?\b/, 'number'],
-
-                                        // Массивы (простые)
                                         [/\[.*?\]/, 'number'],
-
-                                        // Булевы
                                         [/\b(true|false)\b/, 'keyword.constant'],
-
-                                        // Прочее
                                         [/[{}[\],]/, 'delimiter']
-                                        ]
+                                    ]
+                                }
+                            })
+                            monaco.languages.registerCompletionItemProvider('dsl', {
+                                provideCompletionItems: (model, position) => {
+                                    return {
+                                        suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
                                     }
-                                })
-                                monaco.languages.registerCompletionItemProvider('dsl', {
-                                    provideCompletionItems: (model, position) => {
-                                        return {
-                                            suggestions: generateCompletionsFromTypes(defaultObjectProps, model, position),
-                                        }
-                                    }
-                                })
-                                monaco.languages.register({ id: 'glsl' })
-                                monaco.languages.setMonarchTokensProvider('glsl', language)
-                                monaco.editor.defineTheme('myTheme', {
-                                    base: 'vs-dark',
-                                    inherit: true,
-                                    rules: [
-                                        { token: 'comment', foreground: '888888' },
-                                        { token: 'keyword', foreground: 'FF007F', fontStyle: 'bold' },
-                                        { token: 'number', foreground: '00FFDD' },
-                                        { token: 'string', foreground: 'FFE377' },
-                                    ],
-                                    colors: {
-                                        'editor.background': '#161619ff',
-                                        'editor.lineHighlightBackground': '#2a2a3d',
-                                        'editorCursor.foreground': '#ffcc00',
-                                        'editorLineNumber.foreground': '#5c5c8a'
-                                    },
-                                })
-
-                                monaco.editor.setTheme('myTheme')
+                                }
+                            })
+                            monaco.languages.register({ id: 'glsl' })
+                            monaco.languages.setMonarchTokensProvider('glsl', language)
+                            monaco.editor.defineTheme('myTheme', {
+                                base: 'vs-dark',
+                                inherit: true,
+                                rules: [
+                                    { token: 'comment', foreground: '888888' },
+                                    { token: 'keyword', foreground: 'FF007F', fontStyle: 'bold' },
+                                    { token: 'number', foreground: '00FFDD' },
+                                    { token: 'string', foreground: 'FFE377' },
+                                ],
+                                colors: {
+                                    'editor.background': '#161619ff',
+                                    'editor.lineHighlightBackground': '#2a2a3d',
+                                    'editorCursor.foreground': '#ffcc00',
+                                    'editorLineNumber.foreground': '#5c5c8a'
+                                },
+                            })
+                            monaco.editor.setTheme('myTheme')
                         }
                     }
                     />}
@@ -624,16 +569,15 @@ export default function Main() {
                                     endIcon={<PlayCircleOutline />}
                                     onClick={() => {
                                         if (editorRef?.current) {
-                                            // setEditorText(DSLtoJSONString(editorRef.current.getValue()))
                                             switch (tabValue) {
                                                 case 0:
                                                     setEditorText(DSLtoJSONString(editorRef.current.getValue()))
                                                     break;
                                                 case 1: 
-                                                    setEditorText(editorRef.current.getValue())
+                                                    setVertexProps(editorRef.current.getValue())
                                                     break;
                                                 case 2: 
-                                                    setEditorText(editorRef.current.getValue())
+                                                    setFragmentProps(fragmentShader(null, editorRef.current.getValue()))
                                                     break;
                                                 default:
                                                     break;
@@ -685,6 +629,5 @@ export default function Main() {
                 </div>
             </div>
         </ThemeProvider>
-
     )
 }
