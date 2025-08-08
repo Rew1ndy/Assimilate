@@ -1,13 +1,10 @@
-import * as THREE from 'three'
-
 export const defaultVertexShader = `varying vec2 vUv;
 void main() {
   vUv = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }`
 
-export const defaultFragmentShader = `uniform float uTime;
-varying vec2 vUv;
+export const defaultFragmentShader = `varying vec2 vUv;
 void main() {
   vec3 color = 0.5 + 0.5 * cos(uTime + vUv.xyx + vec3(0,2,4));
   gl_FragColor = vec4(color, 1.0);
@@ -19,20 +16,14 @@ export function vertexShader(autoCfg: string, userCfg: string): string {
     ${autoCfg}
 
     // User cfg
-    ${userCfg ? userCfg : 
-      `varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`
-    }
+    ${userCfg}
     `
   )
 } 
 
 export function fragmentShader(autoCfg: string | null, userCfg: string): string { 
   // Всегда добавляем uvTransformFunctions, чтобы transformUV была доступна
-  const baseAutoCfg = `
+  const baseAutoCfg = `uniform float uTime;
     ${uvTransformFunctions}
     ${autoCfg || ''}
   `;

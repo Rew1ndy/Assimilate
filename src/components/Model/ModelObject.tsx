@@ -188,14 +188,16 @@ export function ModelObject({
   vertexProps,
   fragmentProps,
   shadeError,
-  textures
+  textures,
+  useImportType
 }: {
   url: string;
   objectProps: ObjectProps;
   vertexProps: string;
   fragmentProps: string;
   shadeError: (error: ShaderError) => void;
-  textures: Record<string, TextureProps>
+  textures: Record<string, TextureProps>,
+  useImportType: (uniforms: any) => void
 }) {
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -206,6 +208,8 @@ export function ModelObject({
       generateUVs(geometry);
     }
   }, [geometry]);
+
+  console.log("ModelObj.tsx Fragment: ", fragmentProps)
 
   useEffect(() => {
     if(textures) {
@@ -243,6 +247,8 @@ export function ModelObject({
     uniforms[`u_${slot}_center`] = { value: new THREE.Vector2(...props.center) };
     uniforms[`u_${slot}_rotation`] = { value: props.rotation };
   });
+
+  useImportType(uniforms);
 
   const handleError = useCallback((err: ShaderError) => {
     shadeError(err);
@@ -338,29 +344,4 @@ function generateUVs(geometry: THREE.BufferGeometry) {
   }
 
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvAttr, 2));
-}
-
-
-function useImportType(uniforms: any) { // Добавить пользователю автоимпорт форм прямо на редактор кода, чат лучше не использовать
-  if  (uniforms) {
-    const keys = Object.keys(uniforms).map(value => value?.match(/u_[^_]+.+/) ? value : null).filter(value => value !== null);
-    // const keys = Object.keys(uniforms).map(value => value.startsWith('u_') ? value : null);
-    // const exp = keys.map(value => value?.match(/u_.+_.+/) ? value : null)
-    // console.log(keys)
-    const values = keys.map(value => uniforms[value]?.value).filter(value => value !== undefined)
-    // console.log(values.map(value => value.constructor.name))
-    const final = values.map((value, index) => {
-      switch (value.constructor.name) {
-        case '_Texture':
-          return `uniform sampler2D ${keys[index]};`
-        case '_Vector2':
-          return `uniform vec2 ${keys[index]};`
-        default:
-          return `uniform float ${keys[index]};`
-      }
-    })
-    console.log("Final import: ", final)
-    return final || ''
-  }
-  return ''
 }

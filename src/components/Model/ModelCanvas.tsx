@@ -47,13 +47,15 @@ export default function ModelCanvas(
     obj, 
     vertex, 
     fragment, 
-    textures
+    textures,
+    useImportType
   }: {
     url: string, 
     obj: ObjectProps, 
     vertex: string, 
     fragment: string, 
-    textures: Record<string, TextureProps>
+    textures: Record<string, TextureProps>,
+    useImportType: (uniforms: any) => void
   }) {
   const [errorInfo, setErrorInfo] = useState<ShaderError | null>(null);
   const lastErrorKeyRef = useRef<string | null>(null);
@@ -99,6 +101,7 @@ export default function ModelCanvas(
                     fragmentProps={fragment} 
                     shadeError={handleError} 
                     textures={textures}
+                    useImportType={useImportType}
                   />}
           <OrbitControls />
           <CameraSync props={obj.camera} />

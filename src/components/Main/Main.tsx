@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Editor } from "@monaco-editor/react";
 import { styled, ThemeProvider } from '@mui/material/styles';
 import { Checkbox, Slider, Button, Box, Tabs, Tab, Collapse, FormControl, InputLabel, Select, MenuItem, TextField, Switch, FormControlLabel } from "@mui/material";
@@ -70,6 +70,39 @@ export default function Main() {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const separatorDownRef = useRef<boolean>(false);
     const separatorRef = useRef<HTMLDivElement | null>(null);
+    const [importTypes, setImportTypes] = useState<string>('');
+
+    const useImportType = useCallback((uniforms: any) => { // Добавить пользователю автоимпорт форм прямо на редактор кода, чат лучше не использовать
+    if  (uniforms) {
+        const keys = Object.keys(uniforms).map(value => value?.match(/u_[^_]+.+/) ? value : null).filter(value => value !== null);
+        // const keys = Object.keys(uniforms);
+        // const keys = Object.keys(uniforms).map(value => value.startsWith('u_') ? value : null);
+        // const exp = keys.map(value => value?.match(/u_.+_.+/) ? value : null)
+        // console.log(keys)
+        const values = keys.map(value => uniforms[value]?.value).filter(value => value !== undefined)
+        // const values = keys.map(value => uniforms[value]?.value)
+        // console.log(values.map(value => value.constructor.name))
+        const final = values.map((value, index) => {
+        switch (value.constructor.name) {
+            case '_Texture':
+            return `uniform sampler2D ${keys[index]};`
+            case '_Vector2':
+            return `uniform vec2 ${keys[index]};`
+            default:
+            return `uniform float ${keys[index]};`
+        }
+        })
+        // setImportTypes(final.join('\n') || '');
+        setImportTypes(final.join('\n') || '');
+        return;
+    }
+    setImportTypes('');
+    return;
+    }, [])
+
+    useEffect(() => {
+        console.log("Import Types changed: ", importTypes)
+    }, [importTypes])
     
     useEffect(() => {
         const separator = separatorRef.current;
@@ -111,13 +144,17 @@ export default function Main() {
 
     function extractUserCode(shaderText: string): string | null {
         const match = shaderText.match(/\/\/ User cfg\s*([\s\S]*?)\s*(?=\/\/|$)/);
+        // console.log("Match: ", match)
         return match ? match[1].trim() : shaderText.trim();
     }
 
     const tabs = [
         { label: 'Config', content: 'Configure object and camera properties to define the scene layout.' },
         { label: 'Vertex', content: 'Use the vertex shader to manipulate geometry and control vertex positions.' },
-        { label: 'Fragment', content: 'Use the fragment shader to define pixel colors, lighting, and visual effects.' },
+        { label: 'Fragment', content: importTypes !== '' ?
+            importTypes.split('\n').map(value => <p className="import-value">{value}</p>) :
+            'Use the fragment shader to define pixel colors, lighting, and visual effects.'
+         },
         { label: 'Images', content: 'You can add multiple images and config in proper ways.' }
     ]
 
@@ -196,7 +233,8 @@ export default function Main() {
                         setVertexProps(editorText);
                         break;
                     case 2: 
-                        setFragmentProps(fragmentShader(null, editorText)); // Автоматически добавляем автогенерируемый код
+                        // setFragmentProps(fragmentShader(null, editorText)); // Автоматически добавляем автогенерируемый код
+                        setFragmentProps(editorText); // Автоматически добавляем автогенерируемый код
                         break;
                     default:
                         break;
@@ -206,6 +244,9 @@ export default function Main() {
             }
         }
     }, [editorText]);
+
+    // console.log("Extracted props: ", extractUserCode(fragmentShader(importTypes, fragmentProps)))
+    console.log("Extracted props: ", fragmentShader(importTypes, fragmentProps))
 
     return (
         <ThemeProvider theme={customTheme}>
@@ -220,8 +261,9 @@ export default function Main() {
                         url={fileURL} 
                         obj={objectProps} 
                         vertex={vertexProps} 
-                        fragment={fragmentProps} 
+                        fragment={fragmentShader(importTypes, fragmentProps)} 
                         textures={textureMap} 
+                        useImportType={useImportType}
                     />
                     <Button
                             component="label"
@@ -271,7 +313,7 @@ export default function Main() {
                             </Tabs>
                             {tabs.map((tab, i) => (
                                 <TabPanel key={i} value={tabValue} index={i}>
-                                    <Collapse in={isHint} timeout="auto" unmountOnExit>
+                                    <Collapse className="hint-tabs" in={isHint} timeout="auto" unmountOnExit>
                                         {tab.content}
                                     </Collapse>
                                 </TabPanel>
@@ -503,7 +545,10 @@ export default function Main() {
                         value={
                             tabValue === 0 ? stringifyToDsl(objectProps) :
                             tabValue === 1 ? vertexProps :
-                            tabValue === 2 ? extractUserCode(fragmentProps) : undefined
+                            // tabValue === 2 ? importTypes + '\n' + extractUserCode(fragmentProps) 
+                            // tabValue === 2 ? extractUserCode(fragmentShader(importTypes, fragmentProps)) 
+                            tabValue === 2 ? fragmentProps
+                            : undefined
                         }
                         theme="myTheme"
                         language={tabValue === 0 ? 'dsl' : 'glsl'}
@@ -577,7 +622,10 @@ export default function Main() {
                                                     setVertexProps(editorRef.current.getValue())
                                                     break;
                                                 case 2: 
-                                                    setFragmentProps(fragmentShader(null, editorRef.current.getValue()))
+                                                    console.log('Extracted: ', extractUserCode(editorRef.current.getValue()))
+                                                    // setFragmentProps(fragmentShader(importTypes, extractUserCode(editorRef.current.getValue()) || ''))
+                                                    setFragmentProps(editorRef.current.getValue())
+                                                    // console.log('FragmentPropsF: ', fragmentProps)
                                                     break;
                                                 default:
                                                     break;
