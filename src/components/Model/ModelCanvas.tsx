@@ -8,6 +8,10 @@ import { Alert, AlertTitle } from '@mui/material'
 
 import "./modelCanvas.css";
 import type { TextureProps } from "../Main/Main"
+import { extend, Canvas as R3FCanvas } from "@react-three/fiber";
+
+// Добавляем поддержку outputEncoding
+extend({});
 
 type CameraProps = ObjectProps['camera'];
 
@@ -48,14 +52,16 @@ export default function ModelCanvas(
     vertex, 
     fragment, 
     textures,
-    useImportType
+    useImportType,
+    hdriUrl,
   }: {
     url: string, 
     obj: ObjectProps, 
     vertex: string, 
     fragment: string, 
     textures: Record<string, TextureProps>,
-    useImportType: (uniforms: any) => void
+    useImportType: (uniforms: any) => void,
+    hdriUrl: string
   }) {
   const [errorInfo, setErrorInfo] = useState<ShaderError | null>(null);
   const lastErrorKeyRef = useRef<string | null>(null);
@@ -102,6 +108,7 @@ export default function ModelCanvas(
                     shadeError={handleError} 
                     textures={textures}
                     useImportType={useImportType}
+                    hdriUrl={hdriUrl}
                   />}
           <OrbitControls />
           <CameraSync props={obj.camera} />

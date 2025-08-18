@@ -1,4 +1,4 @@
-import { useLoader, useFrame } from '@react-three/fiber';
+import { useLoader, useFrame, useThree } from '@react-three/fiber';
 // @ts-ignore
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import type { TextureProps } from '../Main/Main';
 import { Vector2 } from 'three';
 import { uvTransformFunctions } from './Shaders';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
 
 // Типы
 type ObjectProps = {
@@ -189,7 +190,8 @@ export function ModelObject({
   fragmentProps,
   shadeError,
   textures,
-  useImportType
+  useImportType,
+  hdriUrl
 }: {
   url: string;
   objectProps: ObjectProps;
@@ -198,10 +200,13 @@ export function ModelObject({
   shadeError: (error: ShaderError) => void;
   textures: Record<string, TextureProps>,
   useImportType: (uniforms: any) => void
+  hdriUrl?: string
 }) {
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
   const [loadedTextures, setLoadedTextures] = useState<Record<string, THREE.Texture>>({});
+
+  useHdriEnvironment(hdriUrl ?? null);
 
   useEffect(() => {
     if (geometry) {
@@ -300,15 +305,16 @@ async function createTexture(textureProps: TextureProps): Promise<THREE.Texture>
   texture.format = THREE[props.format as keyof typeof THREE];
   texture.type = THREE[props.type as keyof typeof THREE];
 
-  texture.repeat.set(...props.repeat);
-  texture.offset.set(...props.offset);
-  texture.center.set(...props.center);
-  texture.rotation = props.rotation;
+  // texture.repeat.set(...props.repeat);
+  // texture.offset.set(...props.offset);
+  // texture.center.set(...props.center);
+  // texture.rotation = props.rotation;
   texture.anisotropy = props.anisotropy;
   texture.flipY = props.flipY;
 
   texture.needsUpdate = true;
   texture.matrixAutoUpdate = true;
+  
   return texture;
 }
 
@@ -344,4 +350,24 @@ function generateUVs(geometry: THREE.BufferGeometry) {
   }
 
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvAttr, 2));
+}
+
+
+export function useHdriEnvironment(hdriUrl: string | null) {
+  const { scene, gl } = useThree();
+
+  useEffect(() => {
+    if (!hdriUrl) return;
+
+    new RGBELoader().load(hdriUrl, (hdrTexture) => {
+      hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+
+      scene.environment = hdrTexture;
+      scene.background = hdrTexture;
+
+      gl.outputEncoding = THREE.sRGBEncoding;
+      gl.toneMapping = THREE.ACESFilmicToneMapping;
+      gl.toneMappingExposure = 1.0;
+    });
+  }, [hdriUrl, scene, gl]);
 }

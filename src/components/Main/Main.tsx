@@ -66,6 +66,9 @@ export default function Main() {
     const [panelWidth, setPanelWidth] = useState(30); // в процентах
     const [textureNavigator, setTextureNavigator] = useState("main");
     const [textureMap, setTextureMap] = useState<Record<string, TextureProps | null>>({});
+    const [hdriMap, setHdriMap] = useState<string | null>(null);
+    const [hdriFile, setHdriFile] = useState<File | null>(null);
+    const [hdriProps, setHdriProps] = useState<{ intensity: number; rotation: number }>({ intensity: 1, rotation: 0 });
 
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const separatorDownRef = useRef<boolean>(false);
@@ -100,9 +103,9 @@ export default function Main() {
     return;
     }, [])
 
-    useEffect(() => {
-        console.log("Import Types changed: ", importTypes)
-    }, [importTypes])
+    // useEffect(() => {
+    //     console.log("Import Types changed: ", importTypes)
+    // }, [importTypes])
     
     useEffect(() => {
         const separator = separatorRef.current;
@@ -166,6 +169,13 @@ export default function Main() {
     const handleTextureUpload = (obj: { target: HTMLInputElement }) => {
         const file = obj.target.files?.[0];
         if (!file) return;
+
+        // console.warn(file.name.includes(".hdr"))
+        if (file.name.includes('.hdr')) {
+            setHdriMap(URL.createObjectURL(file))
+            setHdriFile(file)
+            return
+        }
 
         const name = file.name;
         const slot = "map";
@@ -246,7 +256,7 @@ export default function Main() {
     }, [editorText]);
 
     // console.log("Extracted props: ", extractUserCode(fragmentShader(importTypes, fragmentProps)))
-    console.log("Extracted props: ", fragmentShader(importTypes, fragmentProps))
+    // console.log("Extracted props: ", fragmentShader(importTypes, fragmentProps))
 
     return (
         <ThemeProvider theme={customTheme}>
@@ -264,6 +274,8 @@ export default function Main() {
                         fragment={fragmentShader(importTypes, fragmentProps)} 
                         textures={textureMap} 
                         useImportType={useImportType}
+                        hdriUrl={hdriMap}
+                        hdriProps={hdriProps}
                     />
                     <Button
                             component="label"
@@ -344,7 +356,7 @@ export default function Main() {
                                 Upload Image
                                 <VisuallyHiddenInput
                                     type="file"
-                                    accept=".png,.jpeg,.jpg"
+                                    accept=".png,.jpeg,.jpg,.hdr"
                                     onChange={handleTextureUpload} 
                                     multiple={false}
                                 />
@@ -356,49 +368,67 @@ export default function Main() {
                                     onClick={() => console.log(textureMap)}
                                 />
                             </div>
-                            {textureMap && textureNavigator === 'main' && (
-                                <div className="texture-cards">
-                                    {Object.entries(textureMap).map(([name, texture]) => (
-                                        <div key={name} className="img-card">
-                                        <div className="img-wrapper">
-                                            <img src={URL.createObjectURL(texture.file)} alt={name} />
-                                        </div>
-                                        <Button
-                                            component="label"
-                                            role={undefined}
-                                            variant="contained"
-                                            color="third"
-                                            onClick={() => setTextureNavigator(name)}
-                                        >
-                                            Configue
-                                        </Button>
-                                        <Select
-                                            labelId="label"
-                                            id="select"
-                                            value={textureMap[name].slot}
-                                            label="Slot"
-                                            onChange={(e) => {
-                                                const value = e.target.value;
-                                                setTextureMap((prev) => ({
-                                                ...prev,
-                                                [name]: {
-                                                    ...prev[name],
-                                                    slot: value
-                                                }
-                                                }));
-                                            }}
+                            {textureNavigator === 'main' && (
+                                <>
+                                    <div className="texture-cards">
+                                        {Object.entries(textureMap).map(([name, texture]) => (
+                                            <div key={name} className="img-card">
+                                            <div className="img-wrapper">
+                                                <img src={URL.createObjectURL(texture.file)} alt={name} />
+                                            </div>
+                                            <Button
+                                                component="label"
+                                                role={undefined}
+                                                variant="contained"
+                                                color="third"
+                                                onClick={() => setTextureNavigator(name)}
                                             >
-                                            {TextureSlot.map((option) => (
-                                                <MenuItem key={option} value={option}>
-                                                {option}
-                                                </MenuItem>
-                                            ))}
-                                        </Select>
+                                                Configure
+                                            </Button>
+                                            <Select
+                                                className="img-config"
+                                                labelId="label"
+                                                id="select"
+                                                value={textureMap[name].slot}
+                                                label="Slot"
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setTextureMap((prev) => ({
+                                                    ...prev,
+                                                    [name]: {
+                                                        ...prev[name],
+                                                        slot: value
+                                                    }
+                                                    }));
+                                                }}
+                                                >
+                                                {TextureSlot.map((option) => (
+                                                    <MenuItem key={option} value={option}>
+                                                    {option}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                            </div>
+                                        ))}
+                                        {hdriFile && (
+                                        <div className="hdri-card">
+                                            <div className="img-wrapper"></div>
+                                            <div className="hdri-placeholder">HDRI Map: {hdriFile.name}</div> {/* Placeholder since HDR can't be displayed directly */}
+                                            <Button
+                                                component="label"
+                                                role={undefined}
+                                                variant="contained"
+                                                color="third"
+                                                onClick={() => setTextureNavigator('hdri')}
+                                            >
+                                                Configure
+                                            </Button>
                                         </div>
-                                    ))}
-                                </div>
+                                    )}
+                                    </div>
+                                </>
                             )}
-                            {textureNavigator !== 'main' && textureMap[textureNavigator] && (
+                            {textureNavigator !== 'main' && textureNavigator !== 'hdri' && textureMap[textureNavigator] && (
                                 <div className="img-ctrl">
                                         <div className="img-selectors">
                                         {Object.entries(TextureProps.select).map(([key, options]) => (
@@ -539,6 +569,47 @@ export default function Main() {
                                         </div>
                                     </div>
                                 )}
+                            {textureNavigator === 'hdri' && (
+                                <div className="img-ctrl">
+                                    <h3>HDRI Configuration</h3>
+                                    <div className="img-slider">
+                                        <div className="slider-info">
+                                            <p>Intensity</p>
+                                            <Slider
+                                                value={hdriProps.intensity}
+                                                onChange={(_, value) =>
+                                                    setHdriProps((prev) => ({
+                                                        ...prev,
+                                                        intensity: value as number
+                                                    }))
+                                                }
+                                                step={0.1}
+                                                marks
+                                                min={0}
+                                                max={10}
+                                                valueLabelDisplay="auto"
+                                            />
+                                        </div>
+                                        <div className="slider-info">
+                                            <p>Rotation</p>
+                                            <Slider
+                                                value={hdriProps.rotation}
+                                                onChange={(_, value) =>
+                                                    setHdriProps((prev) => ({
+                                                        ...prev,
+                                                        rotation: value as number
+                                                    }))
+                                                }
+                                                step={1}
+                                                marks
+                                                min={0}
+                                                max={360}
+                                                valueLabelDisplay="auto"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div> 
                     }
                    { tabValue <= 2 && <Editor
@@ -622,7 +693,7 @@ export default function Main() {
                                                     setVertexProps(editorRef.current.getValue())
                                                     break;
                                                 case 2: 
-                                                    console.log('Extracted: ', extractUserCode(editorRef.current.getValue()))
+                                                    // console.log('Extracted: ', extractUserCode(editorRef.current.getValue()))
                                                     // setFragmentProps(fragmentShader(importTypes, extractUserCode(editorRef.current.getValue()) || ''))
                                                     setFragmentProps(editorRef.current.getValue())
                                                     // console.log('FragmentPropsF: ', fragmentProps)

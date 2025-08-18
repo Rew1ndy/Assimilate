@@ -56,7 +56,8 @@ export const TextureSlot = [
     "aoMap",
     "displacementMap",
     "envMap",
-    "alphaMap"
+    "alphaMap",
+    "hdri"
 ]
 
 export const TextureProps = {
