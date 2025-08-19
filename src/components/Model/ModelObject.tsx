@@ -191,22 +191,29 @@ export function ModelObject({
   shadeError,
   textures,
   useImportType,
-  hdriUrl
+  hdriUrl,
+  hdriProps,
 }: {
   url: string;
   objectProps: ObjectProps;
   vertexProps: string;
   fragmentProps: string;
   shadeError: (error: ShaderError) => void;
-  textures: Record<string, TextureProps>,
-  useImportType: (uniforms: any) => void
-  hdriUrl?: string
+  textures: Record<string, TextureProps>;
+  useImportType: (uniforms: any) => void;
+  hdriUrl?: string;
+  hdriProps?: { intensity: number; rotation: number };
 }) {
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
   const [loadedTextures, setLoadedTextures] = useState<Record<string, THREE.Texture>>({});
 
-  useHdriEnvironment(hdriUrl ?? null);
+  useHdriEnvironment(hdriUrl ?? null, hdriProps ?? null); // Передаем hdriProps
+
+  useEffect(() => {
+  console.log('hdriProps:', hdriProps);
+}, [hdriProps]);
+
 
   useEffect(() => {
     if (geometry) {
@@ -214,10 +221,8 @@ export function ModelObject({
     }
   }, [geometry]);
 
-  console.log("ModelObj.tsx Fragment: ", fragmentProps)
-
   useEffect(() => {
-    if(textures) {
+    if (textures) {
       const loadAllTextures = async () => {
         const entries = await Promise.all(
           Object.entries(textures).map(async ([name, tex]) => {
@@ -225,10 +230,8 @@ export function ModelObject({
             return [name, texture] as const;
           })
         );
-  
         setLoadedTextures(Object.fromEntries(entries));
       };
-  
       loadAllTextures();
     }
   }, [textures]);
@@ -253,11 +256,13 @@ export function ModelObject({
     uniforms[`u_${slot}_rotation`] = { value: props.rotation };
   });
 
-  useImportType(uniforms);
+  useEffect(() => {
+    useImportType(uniforms);
+  }, [uniforms, useImportType]);
 
   const handleError = useCallback((err: ShaderError) => {
     shadeError(err);
-  }, []);
+  }, [shadeError]);
 
   useFrame(({ clock }) => {
     const mesh = meshRef.current;
@@ -280,7 +285,7 @@ export function ModelObject({
         <SafeShaderMaterial
           textures={textures}
           vertex={vertexProps}
-          fragment={fragmentProps} // Используем fragmentProps напрямую
+          fragment={fragmentProps}
           uniforms={uniforms}
           onError={handleError}
         />
@@ -352,22 +357,95 @@ function generateUVs(geometry: THREE.BufferGeometry) {
   geometry.setAttribute('uv', new THREE.BufferAttribute(uvAttr, 2));
 }
 
-
-export function useHdriEnvironment(hdriUrl: string | null) {
+export function useHdriEnvironment(
+  hdriUrl: string | null,
+  hdriProps: { intensity: number; rotation: number } | null
+) {
   const { scene, gl } = useThree();
+  const pmremGeneratorRef = useRef<THREE.PMREMGenerator | null>(null);
+  const envMapRef = useRef<THREE.Texture | null>(null);
+  const hdrTextureRef = useRef<THREE.Texture | null>(null);
 
+  // Инициализация PMREMGenerator
   useEffect(() => {
-    if (!hdriUrl) return;
+    pmremGeneratorRef.current = new THREE.PMREMGenerator(gl);
+    pmremGeneratorRef.current.compiler = true;
+    return () => {
+      if (pmremGeneratorRef.current) {
+        pmremGeneratorRef.current.dispose();
+      }
+    };
+  }, [gl]);
 
-    new RGBELoader().load(hdriUrl, (hdrTexture) => {
-      hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+  // Загрузка HDRI
+  useEffect(() => {
+    if (!hdriUrl || !pmremGeneratorRef.current) {
+      scene.environment = null;
+      scene.background = null;
+      if (envMapRef.current) {
+        envMapRef.current.dispose();
+        envMapRef.current = null;
+      }
+      if (hdrTextureRef.current) {
+        hdrTextureRef.current.dispose();
+        hdrTextureRef.current = null;
+      }
+      return;
+    }
 
-      scene.environment = hdrTexture;
-      scene.background = hdrTexture;
+    const loader = new RGBELoader();
+    loader.load(
+      hdriUrl,
+      (hdrTexture) => {
+        hdrTexture.mapping = THREE.EquirectangularReflectionMapping;
+        const envMap = pmremGeneratorRef.current!.fromEquirectangular(hdrTexture).texture;
 
-      gl.outputEncoding = THREE.sRGBEncoding;
-      gl.toneMapping = THREE.ACESFilmicToneMapping;
-      gl.toneMappingExposure = 1.0;
-    });
+        scene.environment = envMap;
+        scene.background = envMap;
+        gl.outputEncoding = THREE.sRGBEncoding;
+        gl.toneMapping = THREE.ACESFilmicToneMapping;
+        gl.toneMappingExposure = hdriProps?.intensity || 1.0;
+
+        // Устанавливаем начальное вращение фона
+        scene.backgroundRotation.set(0, (hdriProps?.rotation || 0) * Math.PI / 180, 0); // Переводим градусы в радианы
+
+        envMapRef.current = envMap;
+        hdrTextureRef.current = hdrTexture;
+
+        console.log('HDRI loaded successfully:', hdriUrl);
+      },
+      undefined,
+      (err) => {
+        console.error('HDRI loading failed:', err);
+      }
+    );
+
+    return () => {
+      if (envMapRef.current) {
+        envMapRef.current.dispose();
+        envMapRef.current = null;
+      }
+      if (hdrTextureRef.current) {
+        hdrTextureRef.current.dispose();
+        hdrTextureRef.current = null;
+      }
+      scene.environment = null;
+      scene.background = null;
+    };
   }, [hdriUrl, scene, gl]);
+
+  // Обновление интенсивности и вращения
+  useEffect(() => {
+    if (hdriProps) {
+      // Обновляем интенсивность
+      gl.toneMappingExposure = hdriProps.intensity;
+
+      // Обновляем вращение фона
+      scene.backgroundRotation.set(0, hdriProps.rotation * Math.PI / 180, 0); // Переводим градусы в радианы
+
+      console.log('HDRI updated: intensity =', hdriProps.intensity, 'rotation =', hdriProps.rotation);
+    }
+  }, [hdriProps, scene, gl]);
 }
+
+/// HDRI работает полностью, но нужно будет потом разобраться с перегрузкой сцены, из-за чего карта может пропасть и после не восстановиться

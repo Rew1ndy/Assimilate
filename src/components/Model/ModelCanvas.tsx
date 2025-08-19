@@ -54,6 +54,7 @@ export default function ModelCanvas(
     textures,
     useImportType,
     hdriUrl,
+    hdriProps,
   }: {
     url: string, 
     obj: ObjectProps, 
@@ -61,7 +62,8 @@ export default function ModelCanvas(
     fragment: string, 
     textures: Record<string, TextureProps>,
     useImportType: (uniforms: any) => void,
-    hdriUrl: string
+    hdriUrl: string,
+    hdriProps?: { intensity: number; rotation: number };
   }) {
   const [errorInfo, setErrorInfo] = useState<ShaderError | null>(null);
   const lastErrorKeyRef = useRef<string | null>(null);
@@ -109,6 +111,7 @@ export default function ModelCanvas(
                     textures={textures}
                     useImportType={useImportType}
                     hdriUrl={hdriUrl}
+                    hdriProps={hdriProps}
                   />}
           <OrbitControls />
           <CameraSync props={obj.camera} />
