@@ -1,10 +1,7 @@
 import * as React from 'react';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
-import FolderIcon from '@mui/icons-material/Folder';
-import RestoreIcon from '@mui/icons-material/Restore';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
+import {Home, Favorite, Restore, Person} from '@mui/icons-material';
 
 export default function Footer() {
     const [value, setValue] = React.useState('recents');
@@ -15,24 +12,50 @@ export default function Footer() {
 
     return(
         <footer>
-            <BottomNavigation sx={{ width: 500 }} value={value} onChange={handleChange}>
-            <BottomNavigationAction
-                label="Recents"
-                value="recents"
-                icon={<RestoreIcon />}
+            <div className="footer-wrapper">
+                <BottomNavigationAction
+                    label="Home"
+                    value="home"
+                    icon={<Home />}
+                />
+                <BottomNavigationAction
+                    label="Favorites"
+                    value="favorites"
+                    icon={<Favorite />}
+                />
+                <BottomNavigationAction
+                    label="Last"
+                    value="last"
+                    icon={<Restore />}
+                />
+                <BottomNavigationAction 
+                    label="User" 
+                    value="user" 
+                    icon={<Person />} 
+                />
+            </div>
+            {/* <BottomNavigation sx={{ width: 500 }} value={value} onChange={handleChange}>
+                <BottomNavigationAction
+                    label="Home"
+                    value="home"
+                    icon={<Home />}
+                />
+                <BottomNavigationAction
+                    label="Favorites"
+                    value="favorites"
+                    icon={<Favorite />}
+                />
+                <BottomNavigationAction
+                    label="Last"
+                    value="last"
+                    icon={<Restore />}
+                />
+                <BottomNavigationAction 
+                    label="User" 
+                    value="user" 
+                    icon={<Person />} 
             />
-            <BottomNavigationAction
-                label="Favorites"
-                value="favorites"
-                icon={<FavoriteIcon />}
-            />
-            <BottomNavigationAction
-                label="Nearby"
-                value="nearby"
-                icon={<LocationOnIcon />}
-            />
-            <BottomNavigationAction label="Folder" value="folder" icon={<FolderIcon />} />
-            </BottomNavigation>
+            </BottomNavigation> */}
         </footer>
     )
 }

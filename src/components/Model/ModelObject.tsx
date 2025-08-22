@@ -7,6 +7,7 @@ import type { TextureProps } from '../Main/Main';
 import { Vector2 } from 'three';
 import { uvTransformFunctions } from './Shaders';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader';
+import type { HdriProps } from '../Types/Types';
 
 // Типы
 type ObjectProps = {
@@ -193,6 +194,7 @@ export function ModelObject({
   useImportType,
   hdriUrl,
   hdriProps,
+  sceneProps
 }: {
   url: string;
   objectProps: ObjectProps;
@@ -202,13 +204,21 @@ export function ModelObject({
   textures: Record<string, TextureProps>;
   useImportType: (uniforms: any) => void;
   hdriUrl?: string;
-  hdriProps?: { intensity: number; rotation: number };
+  hdriProps?: HdriProps;
+  sceneProps: { sceneColor: string }
 }) {
   const geometry = useLoader(STLLoader, url);
   const meshRef = useRef<THREE.Mesh>(null);
   const [loadedTextures, setLoadedTextures] = useState<Record<string, THREE.Texture>>({});
+  const { scene } = useThree();
 
   useHdriEnvironment(hdriUrl ?? null, hdriProps ?? null); // Передаем hdriProps
+
+  useEffect(() => {
+    // scene.background = new THREE.Color(0x222222); // или любой другой цвет
+    // console.log("Scene props: ", sceneProps)
+    scene.background = new THREE.Color(sceneProps?.sceneColor)
+  }, [sceneProps])
 
   useEffect(() => {
   console.log('hdriProps:', hdriProps);
@@ -269,6 +279,12 @@ export function ModelObject({
     if (mesh && objectProps?.object.rotation.isRotating) {
       const { axis, speed, direction } = objectProps.object.rotation;
       mesh.rotation[axis] += speed * direction;
+      // scene.backgroundRotation.set(0, clock.getElapsedTime() * (speed * 15), 0)
+    }
+
+    if (hdriProps) {
+      if (hdriProps.isRotating) 
+        scene.backgroundRotation.set(0, clock.getElapsedTime() * hdriProps.rotationSpeed / 100, 0);
     }
 
     if (mesh?.material && 'uniforms' in mesh.material) {

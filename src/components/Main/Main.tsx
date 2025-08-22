@@ -5,7 +5,7 @@ import { Checkbox, Slider, Button, Box, Tabs, Tab, Collapse, FormControl, InputL
 import { CloudUpload, ChevronLeft, ChevronRight, Info, PlayCircleOutline, ArrowBackIos } from '@mui/icons-material'
 
 import { defaultObjectProps, DefaultTextureProps, TextureProps, TextureSlot } from "../Types/Types";
-import type { ObjectProps } from "../Types/Types";
+import type { HdriProps, ObjectProps } from "../Types/Types";
 import { DSLtoJSONString, stringifyToDsl } from "./Syntax/DslFormatter";
 import { generateCompletionsFromTypes, language } from "./Syntax/Highlighter";
 import * as monaco from 'monaco-editor'
@@ -14,6 +14,7 @@ import ModelCanvas from "../Model/ModelCanvas";
 import { defaultFragmentShader, defaultVertexShader, fragmentShader, vertexShader, uvTransformFunctions } from "../Model/Shaders";
 
 import "./main.css";
+import { HexColorInput, HexColorPicker } from "react-colorful";
 
 const VisuallyHiddenInput = styled('input')({
   clip: 'rect(0 0 0 0)',
@@ -68,7 +69,15 @@ export default function Main() {
     const [textureMap, setTextureMap] = useState<Record<string, TextureProps | null>>({});
     const [hdriMap, setHdriMap] = useState<string | null>(null);
     const [hdriFile, setHdriFile] = useState<File | null>(null);
-    const [hdriProps, setHdriProps] = useState<{ intensity: number; rotation: number }>({ intensity: 1, rotation: 0 });
+    const [hdriProps, setHdriProps] = useState<HdriProps>({ 
+        intensity: 1, 
+        rotation: 0, 
+        rotationSpeed: 5,
+        isRotating: false 
+    });
+    const [sceneProps, setSceneProps] = useState({
+        sceneColor: '00000000',
+    })
 
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const separatorDownRef = useRef<boolean>(false);
@@ -158,7 +167,10 @@ export default function Main() {
             importTypes.split('\n').map(value => <p className="import-value">{value}</p>) :
             'Use the fragment shader to define pixel colors, lighting, and visual effects.'
          },
-        { label: 'Images', content: 'You can add multiple images and config in proper ways.' }
+        { label: 'Images', content: 'You can add multiple images and config in proper ways.' },
+        {
+            label: 'Scene', content: 'Some scene tweaks.'
+        }
     ]
 
     const handleFileUpload = (obj: { target: HTMLInputElement; }) => {
@@ -276,6 +288,7 @@ export default function Main() {
                         useImportType={useImportType}
                         hdriUrl={hdriMap}
                         hdriProps={hdriProps}
+                        sceneProps={sceneProps}
                     />
                     <Button
                             component="label"
@@ -591,7 +604,7 @@ export default function Main() {
                                             />
                                         </div>
                                         <div className="slider-info">
-                                            <p>Rotation</p>
+                                            <p>Rotation degree</p>
                                             <Slider
                                                 value={hdriProps.rotation}
                                                 onChange={(_, value) =>
@@ -606,6 +619,41 @@ export default function Main() {
                                                 max={360}
                                                 valueLabelDisplay="auto"
                                             />
+                                        </div>
+                                        <div className="slider-info">
+                                            <p>Rotation speed</p>
+                                            <Slider
+                                                value={hdriProps.rotationSpeed}
+                                                onChange={(_, value) =>
+                                                    setHdriProps((prev) => ({
+                                                        ...prev,
+                                                        rotationSpeed: value as number
+                                                    }))
+                                                }
+                                                step={1}
+                                                marks
+                                                min={0}
+                                                max={100}
+                                                valueLabelDisplay="auto"
+                                            />
+                                        </div>
+                                        <div className="checkbox-info">
+                                            <FormControl>
+                                            <FormControlLabel
+                                                control={
+                                                <Switch
+                                                    checked={hdriProps.isRotating}
+                                                    onChange={(e) => {
+                                                        setHdriProps((prev) => ({
+                                                            ...prev,
+                                                            isRotating: e.target.checked
+                                                        }))
+                                                    }}
+                                                />
+                                                }
+                                                label="Is Rotate ?"
+                                            />
+                                            </FormControl>
                                         </div>
                                     </div>
                                 </div>
@@ -676,7 +724,7 @@ export default function Main() {
                         }
                     }
                     />}
-                    { tabValue !== 3 && 
+                    { tabValue < 3 && 
                         <div className="editor-menu">
                             <div className="editor-buttons" style={{ display: 'flex', gap: 12 }}>
                                 <Button 
@@ -743,6 +791,36 @@ export default function Main() {
                                 max={0.01}
                                 valueLabelDisplay="auto"
                             />
+                        </div>
+                    }
+                    {
+                        tabValue === 4 && 
+                        <div className="scene-fix">
+                            <div className="scene-color">
+                                <HexColorPicker 
+                                    color={sceneProps.sceneColor} 
+                                    onChange={ 
+                                        (newColor) => 
+                                            setSceneProps((prev) => ({
+                                                ...prev,
+                                                sceneColor: newColor
+                                        }))
+                                    } 
+                                />
+                                <HexColorInput 
+                                    color={sceneProps.sceneColor} 
+                                    style={{
+                                        borderColor: sceneProps.sceneColor
+                                    }}
+                                    onChange={ 
+                                        (newColor) => 
+                                            setSceneProps((prev) => ({
+                                                ...prev,
+                                                sceneColor: newColor
+                                        }))
+                                    } 
+                                />
+                            </div>
                         </div>
                     }
                 </div>

@@ -8,6 +8,10 @@ html, body, * {
   margin: 0;
 }
 
+body {
+  background-color: var(--dark-background-color);
+}
+
 :root {
   --dark-background-color: #161619;
   --dark-button-color: #444448;

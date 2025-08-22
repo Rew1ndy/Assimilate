@@ -1,0 +1,13 @@
+.home-wrapper {
+    margin-bottom: var(--padding-base-big);
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    /* background-color: azure; */
+}
+
+.home-background {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+}

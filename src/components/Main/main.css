@@ -76,6 +76,15 @@
   margin: 0;
 }
 
+.editor-buttons {
+  justify-content: space-evenly;
+  gap: 2%;
+}
+
+.editor-buttons > * {
+  padding: 0.2% 5% !important;
+}
+
 .editor-buttons > span {
   border: 1px solid rgba(240, 248, 255, 0.5);
   border-radius: 4px;
@@ -88,6 +97,10 @@
   font-size: 0.7rem;
   letter-spacing: 1px;
   transition: all 1s ease;
+}
+
+.editor .MuiTabs-list {
+  justify-content: space-evenly;
 }
 
 .editor-tabs::after {
@@ -226,9 +239,49 @@
   border-radius: 4%;
 }
 
+div.react-colorful {
+  width: 80%;
+}
+
+.scene-color {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--padding-base-big);
+}
+
+.scene-color input {
+  width: 80%;
+  text-align: center;
+  background-color: transparent;
+  outline: 0;
+  border: 0;
+  color: var(--dark-text-color);
+  font-size: 1.3rem;
+  border-bottom: 3px solid var(--dark-text-color);
+  border-radius: 4px;
+}
+
 @media (width < 920px) {
   .main {
     display: flex;
     flex-direction: column;
+    overflow: auto;
   }
+
+  .canvas {
+    width: 100% !important;
+    max-height: 300px;
+  }
+
+  .separator-adjuster {
+    display: none;
+  }
+
+  .editor {
+    width: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(300px, 1fr) auto;
+  }
+
 } 

@@ -153,70 +153,9 @@ export const DefaultTextureProps = {
   "flipY": false,
 }
 
-
-// export const TextureProps.old = {
-//   "wrapS": [
-//     "RepeatWrapping",
-//     "ClampToEdgeWrapping",
-//     "MirroredRepeatWrapping"
-//   ],
-//   "wrapT": [
-//     "RepeatWrapping",
-//     "ClampToEdgeWrapping",
-//     "MirroredRepeatWrapping"
-//   ],
-//   "repeat": [1, 1], // Vector2, number x2 (suggested range: 0.1–10)
-//   "offset": [0, 0], // Vector2, number x2 (range: -1 to 1)
-//   "center": [0, 0], // Vector2, number x2 (default: 0)
-//   "rotation": 0, // (radians: 0 to 2π, degrees: 0° to 360°) /// Slider
-//   "flipY": false, /// Checkbox
-//   "encoding": [
-//     "LinearEncoding",
-//     "sRGBEncoding",
-//     "GammaEncoding",
-//     "RGBEEncoding",
-//     "RGBMEncoding",
-//     "RGBDEncoding",
-//     "LogLuvEncoding"
-//   ],
-//   "anisotropy": 1, // (integer: 1 to 16)
-//   "magFilter": [
-//     "NearestFilter",
-//     "LinearFilter"
-//   ],
-//   "minFilter": [
-//     "NearestFilter",
-//     "LinearFilter",
-//     "NearestMipMapNearestFilter",
-//     "NearestMipMapLinearFilter",
-//     "LinearMipMapNearestFilter",
-//     "LinearMipMapLinearFilter"
-//   ],
-//   "mapping": [
-//     "UVMapping",
-//     "CubeReflectionMapping",
-//     "CubeRefractionMapping",
-//     "EquirectangularReflectionMapping",
-//     "EquirectangularRefractionMapping",
-//     "SphericalReflectionMapping"
-//   ],
-//   "format": [
-//     "RGBAFormat",
-//     "RGBFormat",
-//     "AlphaFormat",
-//     "LuminanceFormat",
-//     "LuminanceAlphaFormat",
-//     "DepthFormat",
-//     "DepthStencilFormat"
-//   ],
-//   "type": [
-//     "UnsignedByteType",
-//     "ByteType",
-//     "ShortType",
-//     "UnsignedShortType",
-//     "IntType",
-//     "UnsignedIntType",
-//     "FloatType",
-//     "HalfFloatType"
-//   ]
-// }
+export type HdriProps = {
+  intensity: number;
+  rotation: number;
+  rotationSpeed: number;
+  isRotating: boolean;
+}

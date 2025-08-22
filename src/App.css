@@ -4,9 +4,10 @@
   padding: 1rem;
 
   display: grid;
-  grid-template-rows: auto minmax(100px, 100%) auto;
+  grid-template-rows: auto minmax(100px, 100%) 5%;
   background-color: var(--dark-background-color);
   overflow: hidden;
+  position: relative;
 }
 
 /* .wrapper { */
@@ -22,42 +23,72 @@
   
 /* } */
 
-header {
-  /* grid-row: 1 / 3; */
-  display: flex;
-  flex-direction: column;
-  gap: .33rem;
-
-  
-  color: var(--dark-text-color);
-  margin-bottom: var(--padding-base-big);
-}
-
-header > div {
-  background-color: var(--dark-button-color);
-  border-radius: 4px;
-  letter-spacing: 0.8px;
-  padding: .3rem .5rem;
-}
-
-header > div.header-main {
-  font-size: 1.5rem;
-  font-weight: 500;
-}
-
 footer {
+  /* height: 20%; */
   display: block;
   border-radius: 4px;
   overflow: hidden;
   z-index: 999;
+  transition: all .2s ease;
 }
 
-footer > div {
+.footer-wrapper {
   background-color: var(--dark-button-color) !important;
-  color: var(--dark-text-color) !important;
-  width: 100% !important;
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
 }
 
-footer > div path, span {
+.footer-wrapper button {
+  max-height: 100%;
+  padding: 0;
   color: var(--dark-text-color);
+  height: 100%;
+}
+
+.footer-wrapper button svg {
+  height: 100%;
+}
+
+.footer-wrapper button .MuiBottomNavigationAction-label {
+  display: none;
+}
+
+footer:active {
+  transform: translateY(2px);
+}
+
+@media (height < 650px) {
+  .wrapper {
+    grid-template-rows: auto minmax(100px, 100%);
+  }
+
+  footer {
+    position: absolute;
+    bottom: -48px;
+    width: calc(100% - var(--padding-base-big));
+    margin: var(--padding-base-big);
+    border-radius: 4px;
+    justify-self: center;
+    height: 45px;
+    /* transform: translateY(45px); */
+    padding-top: 10px;
+    background-color: var(--dark-button-color);
+  }
+
+  footer::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 10px;
+    background-color: rgba(240, 248, 255, 0.25);
+    top: 0;
+  }
+
+  footer:hover {
+    bottom: -10px;
+  }
 }

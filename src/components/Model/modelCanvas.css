@@ -1,3 +1,7 @@
+.canvas {
+  overflow: hidden;
+}
+
 .canvasWindow {
   /* height: auto !important; */
   /* display: table; */
@@ -33,6 +37,106 @@
 
 .fade-slide-out {
   animation: fadeSlideOut 0.3s forwards;
+}
+
+.canvas-record {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--padding-base-big);
+  font-size: 0.8rem;
+
+  background-color: #212225;
+  padding: 1rem 0;
+  border-radius: 8px;
+
+  transform: translateX(5.7rem);
+  box-shadow: 0px 0px 5px rgba(240, 248, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+.canvas-record:hover {
+  transform: translateX(0);
+  box-shadow: none;
+}
+
+.canvas-record h3, svg {
+  color: var(--dark-text-color);
+}
+
+.canvas-record button {
+  margin: 0;
+  padding: 0;
+}
+
+.canvas-record button span {
+  padding: 0;
+  margin: 0;
+}
+
+.record-status {
+  width: 20px;
+  height: 20px;
+  border-radius: 20px;
+  background-color: green;
+
+  transition: background-color .5s ease;
+}
+
+.record-active {
+  background-color: red;
+  animation: recording 2s infinite;
+}
+
+.record-res {
+  font-size: 0.8rem !important;
+  max-width: 80%;
+  position: relative;
+}
+
+.record-res::before {
+  content: "res";
+  position: absolute;
+  top: -0.4rem;
+  left: 0.6rem;
+  padding: 0 0.3rem;
+  background-color: #212225;
+  color: #90a4ae;
+  text-transform: uppercase;
+  font-size: 0.55rem;
+  letter-spacing: .5px;
+  z-index: 5;
+}
+
+.record-fps {
+  max-width: 80%;
+  margin: 0 !important;
+}
+
+.record-fps input {
+  font-size: 0.8rem;
+}
+
+.record-fps * {
+  font-size: 0.8rem !important;
+}
+
+@keyframes recording {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeSlideIn {
