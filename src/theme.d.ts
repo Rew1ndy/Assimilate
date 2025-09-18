@@ -5,9 +5,13 @@ import '@mui/material/Button';
 declare module '@mui/material/styles' {
   interface Palette {
     third: PaletteColor;
+    white: PaletteColor;
+    lightBlur: PaletteColor;
   }
   interface PaletteOptions {
     third?: PaletteColorOptions;
+    white?: PaletteColorOptions;
+    lightBlur: PaletteColorOptions;
   }
 }
 

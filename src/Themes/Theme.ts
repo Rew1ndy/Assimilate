@@ -1,20 +1,27 @@
 import { createTheme } from '@mui/material/styles'
-import { blueGrey, amber, cyan, teal } from '@mui/material/colors'
+import { blueGrey, amber, cyan, teal, indigo } from '@mui/material/colors'
 
 export const customTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
       main: blueGrey[300],      // базовый цвет интерфейса
-      contrastText: '#ffffff',
+      contrastText: '#f0f8ff',
     },
     secondary: {
       main: amber[800],         // акцент
-      contrastText: '#ffffff',
+      contrastText: '#f0f8ff',
     },
     third: {
       main: teal[800],
-      contrastText: '#ffffff',
+      contrastText: '#f0f8ff',
+    },
+    lightBlur: {
+      main: '#161922d6',
+    },
+    white: {
+      main: indigo[50],
+      contrastText: '#f0f8ff',
     },
     background: {
       default: blueGrey[900],   // фон страницы

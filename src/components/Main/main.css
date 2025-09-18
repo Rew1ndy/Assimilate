@@ -262,10 +262,14 @@ div.react-colorful {
   border-radius: 4px;
 }
 
-@media (width < 920px) {
+@media (width < 930px) {
   .main {
-    display: flex;
-    flex-direction: column;
+    /* display: flex; */
+    /* flex-direction: column; */
+    display: grid;
+    grid-template-rows: minmax(300px, 1fr) auto;
+    grid-template-columns: 1fr;
+
     overflow: auto;
   }
 

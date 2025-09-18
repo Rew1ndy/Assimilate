@@ -8,6 +8,11 @@ html, body, * {
   margin: 0;
 }
 
+::selection {
+  /* color: red; */
+  background-color: rgba(240, 248, 255, 0.15);
+}
+
 body {
   background-color: var(--dark-background-color);
 }
