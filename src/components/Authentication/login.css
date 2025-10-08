@@ -1,0 +1,224 @@
+.login-wrapper *, 
+.login-wrapper p, 
+.login-wrapper svg {
+    /* font-size: 5vh; */
+    font-size: 2rem;
+}
+
+.login-wrapper h3 {
+  /* font-size: 3vh; */
+  font-size: 1rem;
+  font-style: italic;
+  text-transform: lowercase;
+}
+
+.login {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.login-wrapper {
+  margin: auto auto;
+  /* min-width: 50%; */
+  min-width: 500px;
+  /* background-color: #181820; */
+  padding: calc(var(--padding-base-big) * 2) calc(var(--padding-base-big) * 4);
+  border: 1px solid var(--dark-text-color);
+  border-radius: var(--padding-base-big);
+  color: var(--dark-text-color);
+  /* font-size: 4vw; */
+  font-size: 1rem;
+  /* position: relative; */
+  z-index: 1;
+  backdrop-filter: blur(2px);
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.login-content {
+  height: 100%;
+  /* display: grid;
+  grid-template-rows: auto auto auto auto 1fr; */
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: stretch;
+  position: relative;
+}
+
+.login-content .site-logo {
+  max-height: 130px;
+}
+
+.login-content-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5%;
+}
+
+.login-i-content {
+  display: flex;
+  flex-direction: column;
+  /* align-items: center; */
+  gap: var(--padding-base-big);
+}
+
+.login-input {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+}
+
+.login-input input,
+.login-input span {
+  /* font-size: 3vh; */
+  font-size: 1rem;
+}
+
+.login-input div {
+  width: 100%;
+  border-color: var(--padding-base-big);
+}
+
+.login-buttons-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  background-color: #222; 
+  border-radius: var(--padding-base-big);
+  overflow: hidden;
+  /* margin: 0 15%; */
+}
+
+.login-buttons-wrapper button {
+  flex: 1;
+  z-index: 2;
+  background: transparent;
+  border: none;
+  color: var(--dark-text-color);
+  font-weight: bold;
+  /* font-size: 1rem; */
+  /* font-size: 2vh; */
+  font-size: 1rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.login-buttons-wrapper button.active {
+  color: #fff;
+}
+/* 
+.indicator {
+  transition: all 0.3s ease;
+} */
+
+.login-buttons-wrapper .indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  /* background: linear-gradient(135deg, #4f46e5, #3b82f6); */
+  background-color: #4f46e5;
+  border-radius: calc(var(--padding-base-big) / 2);
+  /* transition: transform 0.3s ease; */
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  z-index: 1;
+}
+
+.login-buttons-wrapper .indicator.login {
+  transform: translateX(0%);
+}
+
+.login-buttons-wrapper .indicator.register {
+  transform: translateX(100%);
+}
+
+.button-login:hover:not(.active) ~ .indicator {
+  transform: translateX(0%);
+}
+
+.button-register:hover:not(.active) ~ .indicator {
+  transform: translateX(100%);
+}
+
+.button-login.active:hover ~ .indicator {
+  background: none;
+  background-color: #46e593; /* активная подсветка */
+}
+
+.button-register.active:hover ~ .indicator {
+  background: none;
+  background-color: #e55346; /* активная подсветка */
+}
+
+
+.login-separator {
+    filter: brightness(.5);
+    margin: 0 auto;
+    font-size: 2vh;
+    text-transform: uppercase;
+}
+
+.login-separator::after {
+  content: "";
+  position: absolute;
+  height: 1px;
+  width: 8vw;
+  /* max-width: 100px;  */
+  background-color: var(--dark-text-color);
+  /* left: 5vw; */
+  left: 3rem;
+  bottom: 50%;
+}
+
+.login-separator::before {
+  content: "";
+  position: absolute;
+  height: 1px;
+  width: 8vw;
+  /* max-width: 100px; */
+  background-color: var(--dark-text-color);
+  /* right: 5vw; */
+  right: 3rem;
+  bottom: 50%;
+}
+
+.login-content-platforms {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 5%;
+}
+
+.login-content-platforms button {
+  width: 100%;
+}
+
+.login-background {
+  position: absolute;
+  top: -50%;
+  left: -var(--padding-base-big);
+  width: 100vw;
+  height: 150vh;
+  z-index: 0;
+  overflow: hidden;
+}
+
+
+.login-background video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none; /* чтобы не мешал кликам */
+}
+
+@media (width < 930px) {
+  .login-background {
+    top: -1rem;
+  }
+}

@@ -4,6 +4,7 @@ import Main from './components/Main/Main'
 import Header from './components/Navigation/Header'
 import Footer from './components/Navigation/Footer'
 import { Home } from './components/Home/Home'
+import { Login } from './components/Authentication/Login'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 function App() {
@@ -83,6 +84,8 @@ function App() {
         <Routes>
           {/* <Route index path='/' element={<Main />} /> */}
           <Route index path='/' element={<Home />} />
+          <Route path='project' element={<Main />} />
+          <Route path='login' element={<Login />} />
         </Routes>
         {/* <Footer /> */}
       </div>

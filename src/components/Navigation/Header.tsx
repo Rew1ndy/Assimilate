@@ -4,12 +4,17 @@ import { Person, ArrowForwardOutlined, ChatBubble, NavigateNext } from '@mui/ico
 import './header.css'
 import { Breadcrumbs, Link, ThemeProvider } from '@mui/material';
 import { customTheme } from '../../Themes/Theme';
+import { useLocation } from 'react-router';
+import { Link as RouterLink } from 'react-router';
 
 export default function Header(params: {isMenuOpen: boolean}) {
+    const location = useLocation();
 
-    function handleClick(event: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-        event.preventDefault();
-        console.info('You clicked a breadcrumb.');
+    // console.log(location)
+    function calculateLocation() : string[] {
+        const result = location.pathname.split("/").slice(1,);
+        console.log("Result: ", result)
+        return result;
     }
 
     return(
@@ -31,7 +36,7 @@ export default function Header(params: {isMenuOpen: boolean}) {
                         </Button>
                     </div>
                     <div className="header-main-right">
-                        <Button variant="text" color='white' startIcon={<Person />}>
+                        <Button variant="text" color='white' startIcon={<Person />} component={RouterLink} to="/login">
                             Login
                         </Button>
                         <Button variant="outlined" color='white' endIcon={<ArrowForwardOutlined />}>
@@ -39,19 +44,32 @@ export default function Header(params: {isMenuOpen: boolean}) {
                         </Button>
                     </div>
                 <div className="header-link">
-                    <div role="presentation" onClick={handleClick}>
+                    <div role="presentation">
                         <Breadcrumbs 
                             aria-label="breadcrumb"
                             separator={<NavigateNext fontSize="small" />}
                         >
-                            <Link 
-                                underline="hover" 
-                                color="text.primary" 
-                                href="/"
-                            >
-                            MUI
+                            <Link component={RouterLink} to="/" underline="hover" color="text.primary">
+                                Home
                             </Link>
-                            <Link
+                            {calculateLocation().map((value, index) => {
+                                const to = value
+                                return (
+                                <Link
+                                    key={to}
+                                    component={RouterLink}
+                                    // to={calculateLocation().slice(0, index)}
+                                    to={ calculateLocation().slice(0, index+1).join("/") }
+                                    underline="hover"
+                                    color="inherit"
+                                    sx={{ textTransform: 'capitalize' }}
+                                >
+                                    {value}
+                                    {/* { calculateLocation().slice(0, index).join("/") } */}
+                                </Link>
+                                );
+                            })}
+                            {/* <Link
                                 underline="hover"
                                 color="inherit"
                                 href="/material-ui/getting-started/installation/"
@@ -65,7 +83,7 @@ export default function Header(params: {isMenuOpen: boolean}) {
                                 aria-current="page"
                             >
                             Breadcrumbs
-                            </Link>
+                            </Link> */}
                         </Breadcrumbs>
                     </div>
                 </div>

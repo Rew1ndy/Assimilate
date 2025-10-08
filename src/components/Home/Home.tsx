@@ -14,6 +14,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { Link } from 'react-router';
 
 export function Home() {
     const [tabValue, setTabValue] = useState(0); /// 0 = News ///
@@ -87,7 +88,13 @@ export function Home() {
                                 <p>Mr. Rew1nd</p>
                             </div>
                         </div>
-                        <Button variant="outlined" color='white' endIcon={<ArrowForwardOutlined />}>
+                        <Button 
+                            variant="outlined" 
+                            color='white' 
+                            endIcon={<ArrowForwardOutlined />}
+                            component={Link}
+                            to="/project"
+                        >
                             Explore
                         </Button>
                     </div>
@@ -115,7 +122,7 @@ export function Home() {
                         </Box>
                     </div>
                     { tabValue == 0 && /// News ///
-                        <div className="news-about"> 
+                        <div className="news-about tabs-base"> 
                             <Card sx={{ 
                                     maxWidth: 345, 
                                     bgcolor: "lightBlur.main",
@@ -165,7 +172,8 @@ export function Home() {
                                 <Collapse in={expanded} timeout="auto" unmountOnExit>
                                     <CardContent sx={{ 
                                         backgroundColor: "#0101015c", 
-                                        borderRadius: "0.33rem"
+                                        borderRadius: "0.33rem",
+                                        marginBottom: "1rem"
                                     }}>
                                     <Typography sx={{ marginBottom: 2 }}>Method:</Typography>
                                     <Typography sx={{ marginBottom: 2 }}>
@@ -196,6 +204,60 @@ export function Home() {
                                 </Collapse>
                                 </Card>
                         </div> 
+                    }
+                    {
+                        tabValue === 1 && 
+                        <div className="recent-works tabs-base">
+                            <Card sx={{ 
+                                    maxWidth: 345, 
+                                    bgcolor: "lightBlur.main",
+                                    padding: "0 1rem",
+                                    borderRadius: ".33rem"
+                                }}>
+                                <CardHeader
+                                    avatar={
+                                    <Avatar 
+                                        sx={{ bgcolor: indigo[50] }}
+                                        src="/imgs/avatar.jpeg"
+                                        aria-label="recipe">
+                                    </Avatar>
+                                    }
+                                    title="Shrimp and Chorizo Paella"
+                                    subheader="likes info"
+                                />
+                                <CardMedia
+                                    component="img"
+                                    height="194"
+                                    image="/imgs/GrayLines.png"
+                                    alt="Paella dish"
+                                    sx={{ borderRadius: "0.33rem" }}
+                                />
+                                <CardContent>
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                        Lorem ipsum dolor sit amet.
+                                    </Typography>
+                                </CardContent>
+                                <CardActions disableSpacing>
+                                    <IconButton aria-label="add to favorites">
+                                    <FavoriteIcon />
+                                    </IconButton>
+                                    <IconButton aria-label="share">
+                                    </IconButton>
+                                    <Button 
+                                        variant='outlined'
+                                        sx={{ width:"100%" }}
+                                    >Explore</Button>
+                                </CardActions>
+                            </Card>
+                        </div>
+                    }
+                    {
+                        tabValue === 2 && 
+                        <div className="about-site tabs-base">
+                            <h2>Hi User</h2>
+                            <h3>This site just my project</h3>
+                            <p>Lorem ipsum dolor, sit amet consectetur adipisicing elit. Corporis deleniti soluta sapiente tempore quisquam ad minima sequi cumque, quam dolores, molestiae numquam temporibus. Doloribus debitis temporibus perspiciatis recusandae cum expedita.</p>
+                        </div>
                     }
                 </div>
             </div>

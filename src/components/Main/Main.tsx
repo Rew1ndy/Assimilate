@@ -293,8 +293,10 @@ export default function Main() {
                     <Button
                             component="label"
                             role={undefined}
-                            variant="contained"
-                            color="secondary"
+                            // variant="contained"
+                            variant="outlined"
+                            // color="secondary"
+                            color="white"
                             tabIndex={-1}
                             startIcon={<CloudUpload />}
                         >

@@ -168,6 +168,15 @@ video {
 
 }
 
-.news-about {
+.tabs-base {
     padding: 2rem 0;
+}
+
+.about-site h2,
+.about-site h3,
+.about-site p {
+  background-color: rgba(0, 0, 0, 0.5);
+  margin: 0.5rem 0;
+  padding: 1rem;
+  border-radius: 0.33rem;
 }
